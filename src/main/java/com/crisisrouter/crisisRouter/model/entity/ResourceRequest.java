@@ -3,6 +3,7 @@ package com.crisisrouter.crisisRouter.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 import lombok.*;
 import jakarta.persistence.*;
 import org.locationtech.jts.geom.Point;
