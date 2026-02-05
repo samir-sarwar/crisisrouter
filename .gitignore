@@ -54,3 +54,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+### Security & Environment Variables ###
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+### Testing ###
+coverage/
