@@ -8,6 +8,7 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.stereotype.Component;
 
+@Component
 public class ResourceRequestMapper {
 
     private final GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
