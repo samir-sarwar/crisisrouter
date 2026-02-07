@@ -29,5 +29,8 @@ public class Claim {
     @Column(name = "claimed_at", nullable = false, updatable = false)
     private LocalDateTime claimedAt;
 
+    @Column(nullable = false)
+    private String status; // e.g., "ACTIVE", "COMPLETED"
+
 
 }

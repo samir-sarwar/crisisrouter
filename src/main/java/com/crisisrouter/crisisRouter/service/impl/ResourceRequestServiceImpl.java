@@ -13,6 +13,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
     private final ResourceRequestRepository requestRepository;
     private final CategoryRepository categoryRepository;
     private final ResourceRequestMapper mapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // GeometryFactory for spatial math (SRID 4326 = GPS coordinates)
     private final GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
@@ -54,7 +56,11 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
 
         // 4. Save and return as DTO
         ResourceRequest saved = requestRepository.save(entity);
-        return mapper.toDTO(saved);
+
+        ResourceRequestDTO savedDTO = mapper.toDTO(saved);
+
+        messagingTemplate.convertAndSend("/topic/requests", savedDTO);
+        return savedDTO;
     }
 
     @Override
