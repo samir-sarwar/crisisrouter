@@ -28,7 +28,7 @@ public class ResourceRequest {
 
     // Relationship to Category (The 'category_id' in your schema)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = true)
     private Category category;
 
     @Column(nullable = false)
