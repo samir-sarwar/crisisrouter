@@ -5,8 +5,10 @@ import com.crisisrouter.crisisRouter.service.dto.ResourceRequestDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,12 +22,16 @@ public class ResourceRequestController {
 
     // POST /api/requests
     // Create a new crisis request
-    @PostMapping
-    public ResponseEntity<ResourceRequestDTO> createReq(@Valid @RequestBody ResourceRequestDTO requestDTO){
-        ResourceRequestDTO created = resourceRequestService.createRequest(requestDTO);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResourceRequestDTO> createReq(
+            @RequestPart("request") @Valid ResourceRequestDTO requestDTO,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+
+        // Now we pass BOTH arguments to your updated Service
+        ResourceRequestDTO created = resourceRequestService.createRequest(requestDTO, image);
+
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
-
     //GET /api/requests/nearby
     // Find based on location
 

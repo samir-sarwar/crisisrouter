@@ -1,12 +1,14 @@
 package com.crisisrouter.crisisRouter.service;
 
 import com.crisisrouter.crisisRouter.service.dto.ResourceRequestDTO;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.UUID;
 
 public interface ResourceRequestService {
     // Saves a new request from a user
-    ResourceRequestDTO createRequest(ResourceRequestDTO requestDTO);
+    ResourceRequestDTO createRequest(ResourceRequestDTO requestDTO, MultipartFile image);
 
     // The "PostGIS" logic will live inside this one
     List<ResourceRequestDTO> findNearby(Double longitude, Double latitude, Double radiusInMeters);

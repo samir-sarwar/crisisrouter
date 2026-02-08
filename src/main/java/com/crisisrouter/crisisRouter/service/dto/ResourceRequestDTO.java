@@ -37,5 +37,8 @@ public class ResourceRequestDTO {
     @NotNull(message = "Longitude is required")
     private Double longitude;
 
+    // Add this field
+    private String imageUrl;
+
     private String status;
 }

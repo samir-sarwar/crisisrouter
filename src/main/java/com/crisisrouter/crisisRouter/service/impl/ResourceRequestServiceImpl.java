@@ -5,6 +5,7 @@ import com.crisisrouter.crisisRouter.model.entity.ResourceRequest;
 import com.crisisrouter.crisisRouter.model.entity.RequestStatus;
 import com.crisisrouter.crisisRouter.repository.CategoryRepository;
 import com.crisisrouter.crisisRouter.repository.ResourceRequestRepository;
+import com.crisisrouter.crisisRouter.service.FileStorageService;
 import com.crisisrouter.crisisRouter.service.ResourceRequestService;
 import com.crisisrouter.crisisRouter.service.dto.ResourceRequestDTO;
 import com.crisisrouter.crisisRouter.service.mapper.ResourceRequestMapper;
@@ -16,6 +17,8 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.crisisrouter.crisisRouter.service.FileStorageService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,13 +32,14 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
     private final CategoryRepository categoryRepository;
     private final ResourceRequestMapper mapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final FileStorageService fileStorageService;
 
     // GeometryFactory for spatial math (SRID 4326 = GPS coordinates)
     private final GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
 
     @Override
     @Transactional
-    public ResourceRequestDTO createRequest(ResourceRequestDTO requestDTO) {
+    public ResourceRequestDTO createRequest(ResourceRequestDTO requestDTO, MultipartFile image) {
         // 1. Fetch the official Category from the DB
         Category category = categoryRepository.findById(requestDTO.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found with ID: " + requestDTO.getCategoryId()));
@@ -50,6 +54,11 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
         // 3. Map DTO to Entity and link the resolved category
         ResourceRequest entity = mapper.toEntity(requestDTO);
         entity.setCategory(category);
+
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = fileStorageService.storeFile(image);
+            entity.setImageUrl(imageUrl);
+        }
 
         // Default new requests to OPEN status
         entity.setStatus(RequestStatus.OPEN);
