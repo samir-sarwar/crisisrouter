@@ -40,7 +40,7 @@ public class AuditLog {
     private String newValue;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "changed_by", nullable = false)
+    @JoinColumn(name = "changed_by", nullable = true) // true for testing MUST CHANGE LATER
     private User changedBy;
 
     @Column(name = "changed_at", nullable = false, updatable = false)

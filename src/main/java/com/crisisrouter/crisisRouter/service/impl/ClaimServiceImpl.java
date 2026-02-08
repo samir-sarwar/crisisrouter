@@ -7,6 +7,7 @@ import com.crisisrouter.crisisRouter.model.entity.User;
 import com.crisisrouter.crisisRouter.repository.ClaimRepository;
 import com.crisisrouter.crisisRouter.repository.ResourceRequestRepository;
 import com.crisisrouter.crisisRouter.repository.UserRepository;
+import com.crisisrouter.crisisRouter.service.AuditService;
 import com.crisisrouter.crisisRouter.service.ClaimService;
 import com.crisisrouter.crisisRouter.service.dto.ClaimDTO;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class ClaimServiceImpl implements ClaimService {
     private final ResourceRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AuditService auditService;
 
     @Override
     @Transactional
@@ -34,6 +36,9 @@ public class ClaimServiceImpl implements ClaimService {
         // 1. Find the request
         ResourceRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        RequestStatus currentStatus = request.getStatus();
+        String oldStatus = currentStatus.toString();
 
         // 2. Validate that it is actually OPEN
         if (request.getStatus() != RequestStatus.OPEN) {
@@ -46,27 +51,44 @@ public class ClaimServiceImpl implements ClaimService {
 
         // 4. Create the Claim record
         Claim claim = new Claim();
-        claim.setRequest(request);    // Matches 'private ResourceRequest request' in Claim entity
-        claim.setUser(volunteer);     // Matches 'private User user' in Claim entity
+        claim.setRequest(request);
+        claim.setUser(volunteer);
         claim.setClaimedAt(LocalDateTime.now());
-        claim.setStatus("ACTIVE");    // This requires the String field we added to Claim.java
+        claim.setStatus("ACTIVE");
 
-        // 5. Update the Request status to CLAIMED (Enum)
+        // 5. Update the Request status
         request.setStatus(RequestStatus.CLAIMED);
 
         // 6. Save changes
         requestRepository.save(request);
         Claim savedClaim = claimRepository.save(claim);
 
-        messagingTemplate.convertAndSend("/topic/claim" + requestId, savedClaim);
-        // 7. Return the DTO
-        return new ClaimDTO(
+        // 7. PREPARE DTO (Moved up so we can use it in WebSocket)
+        ClaimDTO claimDTO = new ClaimDTO(
                 savedClaim.getId(),
                 request.getId(),
                 volunteer.getId(),
                 savedClaim.getClaimedAt(),
                 savedClaim.getStatus()
         );
+
+        // 8. BROADCAST SAFE DTO (Fixes Recursion & PostGIS error)
+        messagingTemplate.convertAndSend("/topic/claim/" + requestId, claimDTO);
+
+        String oldStatusJson = "{\"status\": \"" + oldStatus + "\"}";
+        String newStatusJson = "{\"status\": \"CLAIMED\"}";
+
+        // 10. Audit Log
+        auditService.logAction(
+                "CLAIM_REQUEST",
+                "ResourceRequest",
+                request.getId(),
+                oldStatusJson,             // Now it passes valid JSON
+                newStatusJson,             // Now it passes valid JSON
+                volunteer
+        );
+
+        return claimDTO;
     }
 
     @Override
@@ -92,15 +114,27 @@ public class ClaimServiceImpl implements ClaimService {
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new RuntimeException("Claim not found"));
 
-        // 2. Update Claim Status (String)
+        // 2. Update Claim Status
         claim.setStatus("FULFILLED");
 
-        // 3. Update Request Status (Enum) - Matches your RequestStatus.java file
+        // 3. Update Request Status
         ResourceRequest request = claim.getRequest();
         request.setStatus(RequestStatus.FULFILLED);
 
         // 4. Save both
         claimRepository.save(claim);
         requestRepository.save(request);
+
+        // 5. PREPARE DTO for Broadcast
+        ClaimDTO claimDTO = new ClaimDTO(
+                claim.getId(),
+                request.getId(),
+                claim.getUser().getId(),
+                claim.getClaimedAt(),
+                claim.getStatus()
+        );
+
+        // 6. BROADCAST COMPLETION (So the map updates instantly for everyone)
+        messagingTemplate.convertAndSend("/topic/claim/" + request.getId(), claimDTO);
     }
 }
