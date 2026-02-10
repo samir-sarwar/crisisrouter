@@ -30,6 +30,13 @@ public class User
     private String email;
 
     @Column(nullable = false)
+    private String firstName;
+
+    @Column(nullable = false)
+    private String lastName;
+
+
+    @Column(nullable = false)
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)

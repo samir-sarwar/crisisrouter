@@ -41,4 +41,9 @@ public class ResourceRequestDTO {
     private String imageUrl;
 
     private String status;
+
+    @NotNull(message = "First Name required")
+    private String creatorFirstName;
+    @NotNull(message = "Last Name required")
+    private String creatorLastName;
 }

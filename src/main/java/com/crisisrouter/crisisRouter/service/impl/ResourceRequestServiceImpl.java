@@ -5,6 +5,7 @@ import com.crisisrouter.crisisRouter.model.entity.ResourceRequest;
 import com.crisisrouter.crisisRouter.model.entity.RequestStatus;
 import com.crisisrouter.crisisRouter.repository.CategoryRepository;
 import com.crisisrouter.crisisRouter.repository.ResourceRequestRepository;
+import com.crisisrouter.crisisRouter.repository.UserRepository;
 import com.crisisrouter.crisisRouter.service.FileStorageService;
 import com.crisisrouter.crisisRouter.service.ResourceRequestService;
 import com.crisisrouter.crisisRouter.service.dto.ResourceRequestDTO;
@@ -15,10 +16,13 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.crisisrouter.crisisRouter.service.FileStorageService;
 import org.springframework.web.multipart.MultipartFile;
+import com.crisisrouter.crisisRouter.model.entity.User;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ResourceRequestServiceImpl implements ResourceRequestService {
 
+    private final UserRepository userRepository;
     private final ResourceRequestRepository requestRepository;
     private final CategoryRepository categoryRepository;
     private final ResourceRequestMapper mapper;
@@ -37,12 +42,28 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
     // GeometryFactory for spatial math (SRID 4326 = GPS coordinates)
     private final GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
 
+    public String getCurrentUserEmail() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof OidcUser) {
+            return ((OidcUser) principal).getEmail();
+        }
+        return null;
+    }
+
     @Override
     @Transactional
     public ResourceRequestDTO createRequest(ResourceRequestDTO requestDTO, MultipartFile image) {
         // 1. Fetch the official Category from the DB
         Category category = categoryRepository.findById(requestDTO.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found with ID: " + requestDTO.getCategoryId()));
+
+        String email = getCurrentUserEmail();
+        if (email == null) {
+            throw new RuntimeException("User must be authenticated to create a request");
+        }
+
+        User creator = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
 
         // 2. ENFORCER LOGIC: Check the "Other" rule
         if (category.getName().equalsIgnoreCase("Other")) {
@@ -54,6 +75,7 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
         // 3. Map DTO to Entity and link the resolved category
         ResourceRequest entity = mapper.toEntity(requestDTO);
         entity.setCategory(category);
+        entity.setUser(creator);
 
         if (image != null && !image.isEmpty()) {
             String imageUrl = fileStorageService.storeFile(image);

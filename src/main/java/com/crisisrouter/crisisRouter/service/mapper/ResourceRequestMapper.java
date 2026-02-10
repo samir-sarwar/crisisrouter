@@ -1,4 +1,5 @@
 package com.crisisrouter.crisisRouter.service.mapper;
+
 import com.crisisrouter.crisisRouter.model.entity.ResourceRequest;
 import com.crisisrouter.crisisRouter.model.entity.RequestStatus;
 import com.crisisrouter.crisisRouter.service.dto.ResourceRequestDTO;
@@ -6,59 +7,40 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-@Component
-public class ResourceRequestMapper {
+@Mapper(componentModel = "spring", imports = {RequestStatus.class})
+public abstract class ResourceRequestMapper {
 
+    // Same factory you used in your manual mapper
     private final GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
 
-    public ResourceRequest toEntity(ResourceRequestDTO dto) {
-        if (dto == null) {
-            return null;
-        }
-        ResourceRequest entity = new ResourceRequest();
-        entity.setId(dto.getId());
-        entity.setTitle(dto.getTitle());
-        entity.setDescription(dto.getDescription());
-        entity.setAddress(dto.getAddress());
-        entity.setSeverityLevel(dto.getSeverityLevel());
-        entity.setCustomCategory(dto.getCustomCategory());
+    // TO DTO: Navigation for the creator names and converting the Point back to Lat/Long
+    @Mapping(source = "user.firstName", target = "creatorFirstName")
+    @Mapping(source = "user.lastName", target = "creatorLastName")
+    @Mapping(source = "category.id", target = "categoryId")
+    @Mapping(source = "location", target = "longitude", qualifiedByName = "pointToLongitude")
+    @Mapping(source = "location", target = "latitude", qualifiedByName = "pointToLatitude")
+    public abstract ResourceRequestDTO toDTO(ResourceRequest entity);
 
-        if(dto.getStatus() != null) {
-            entity.setStatus(RequestStatus.valueOf(dto.getStatus()));
-        }
+    // TO ENTITY: Ignore complex fields we set manually in the Service
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "category", ignore = true)
+    @Mapping(target = "location", ignore = true)
+    @Mapping(target = "status", expression = "java(dto.getStatus() != null ? RequestStatus.valueOf(dto.getStatus()) : RequestStatus.OPEN)")
+    public abstract ResourceRequest toEntity(ResourceRequestDTO dto);
 
-        if (dto.getLongitude()!= null &&  dto.getLatitude()!= null) {
-            Point location = factory.createPoint(new Coordinate(dto.getLongitude(), dto.getLatitude()));
-            entity.setLocation(location);
-        }
+    // --- CUSTOM CONVERSION LOGIC ---
 
-        return entity;
-        }
-
-    public ResourceRequestDTO toDTO(ResourceRequest entity) {
-        if  (entity == null) {
-            return null;
+    @Named("pointToLongitude")
+    protected Double pointToLongitude(Point location) {
+        return location != null ? location.getX() : null;
     }
-        ResourceRequestDTO dto = new ResourceRequestDTO();
-        dto.setId(entity.getId());
-        dto.setTitle(entity.getTitle());
-        dto.setDescription(entity.getDescription());
-        dto.setAddress(entity.getAddress());
-        dto.setSeverityLevel(entity.getSeverityLevel());
-        dto.setCustomCategory(entity.getCustomCategory());
-        dto.setStatus(entity.getStatus().name());
 
-        if (dto.getCategoryId() != null) {
-            dto.setCategoryId(dto.getCategoryId());
-        }
-
-        if (entity.getLocation() != null) {
-            dto.setLongitude(entity.getLocation().getX());
-            dto.setLatitude(entity.getLocation().getY());
-        }
-
-        return dto;
+    @Named("pointToLatitude")
+    protected Double pointToLatitude(Point location) {
+        return location != null ? location.getY() : null;
     }
 }
