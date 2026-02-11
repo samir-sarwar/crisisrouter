@@ -1,34 +1,54 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [status, setStatus] = useState('IDLE')
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
+    <div className="container">
+      <div className="scanline"></div>
+
+      <header>
+        <div className="mono-label">SYSTEM_INIT_SUCCESS</div>
+        <h1>CRISIS_ROUTER</h1>
+        <p style={{ color: 'var(--muted-color)', marginTop: '0.5rem' }}>
+          Real-time incident response and routing protocol.
         </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+      </header>
+
+      <main>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <span style={{ color: 'var(--accent-color)' }}>[ NODE_STATUS ]</span>
+            <span>0 ms</span>
+          </div>
+
+          <p style={{ marginBottom: '1.5rem', lineHeight: '1.4' }}>
+            Welcome to the Crisis Router. This interface serves as the primary gateway for dispatching emergency resources and managing active incidents.
+          </p>
+
+          <div style={{ padding: '1rem', border: '1px solid var(--border-color)', background: '#000', marginBottom: '1.5rem' }}>
+            <div style={{ color: 'var(--muted-color)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>TERMINAL_OUTPUT</div>
+            <code style={{ background: 'transparent', padding: 0 }}>
+              &gt; INITIALIZING_WEBSOCKET...<br />
+              &gt; CONNECTION_ESTABLISHED<br />
+              &gt; WAITING_FOR_INBOUND_SIGNAL...
+            </code>
+          </div>
+
+          <button
+            onClick={() => setStatus('SCANNING')}
+            disabled={status === 'SCANNING'}
+          >
+            {status === 'IDLE' ? 'START_NETWORK_SCAN' : 'SCANNING_IN_PROGRESS...'}
+          </button>
+        </div>
+      </main>
+
+      <footer style={{ marginTop: '4rem', color: 'var(--muted-color)', fontSize: '0.8rem' }}>
+        <p>SECURE_ENCRYPTION_ACTIVE // BITS_4096</p>
+      </footer>
+    </div>
   )
 }
 
