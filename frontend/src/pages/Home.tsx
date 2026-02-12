@@ -10,7 +10,14 @@ const Home: React.FC = () => {
     }
 
     return (
-        <div style={{ height: '100vh', width: '100vw' }}>
+        <div className="home-container">
+            {/* Navbar Overlay */}
+            <nav className="overlay-navbar">
+                <a href="#" className="nav-link">Your Requests</a>
+                <a href="#" className="nav-link">Your Actions</a>
+                <a href="#" className="nav-link">Your Profile</a>
+            </nav>
+
             <Map
                 initialViewState={{
                     longitude: -79.3832,
@@ -57,6 +64,13 @@ const Home: React.FC = () => {
                     }}
                 />
             </Map>
+
+            {/* Primary Action Button */}
+            <button className="create-request-btn">
+                Create Crisis Request
+            </button>
+
+            <div className="scanline"></div>
         </div>
     );
 };
