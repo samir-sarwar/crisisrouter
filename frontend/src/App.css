@@ -1,11 +1,21 @@
-.container {
+.login-layout {
   display: flex;
   flex-direction: column;
-  min-height: 80vh;
+  min-height: 100vh;
   justify-content: center;
   align-items: center;
   position: relative;
   z-index: 10;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  width: 100%;
+}
+
+.container {
+  /* Inherits from login-layout or used as inner wrapper */
+  width: 100%;
 }
 
 header {
