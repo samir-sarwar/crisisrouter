@@ -1,24 +1,124 @@
-import React from 'react';
-import Map, { Layer, Source } from "react-map-gl/mapbox";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Map, { Layer, Source, Marker } from 'react-map-gl/mapbox';
+import CrisisRequestForm from '../components/CrisisRequestForm';
+import RequestPreviewCard from '../components/RequestPreviewCard';
 import 'mapbox-gl/dist/mapbox-gl.css';
+
+interface FormData {
+    title: string;
+    address: string;
+    description: string;
+    severity: string;
+    type: string;
+}
+
+const INITIAL_FORM: FormData = {
+    title: '',
+    address: '',
+    description: '',
+    severity: 'medium',
+    type: 'medical',
+};
 
 const Home: React.FC = () => {
     const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
+    const mapRef = useRef<any>(null);
+
+    // UI state
+    const [isCreatingRequest, setIsCreatingRequest] = useState(false);
+
+    // Shared form state (lifted)
+    const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
+    // Geocoded location for preview card
+    const [previewLocation, setPreviewLocation] = useState<{ lng: number; lat: number } | null>(null);
+
+    // Debounced geocoding
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const geocodeAddress = useCallback(
+        async (address: string) => {
+            if (!address.trim() || !mapboxToken) return;
+            try {
+                const encoded = encodeURIComponent(address.trim());
+                const res = await fetch(
+                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${mapboxToken}&limit=1`
+                );
+                const data = await res.json();
+                if (data.features && data.features.length > 0) {
+                    const [lng, lat] = data.features[0].center;
+                    setPreviewLocation({ lng, lat });
+                    mapRef.current?.flyTo({
+                        center: [lng, lat],
+                        zoom: 16,
+                        pitch: 55,
+                        duration: 2000,
+                    });
+                }
+            } catch (err) {
+                console.error('Geocoding error:', err);
+            }
+        },
+        [mapboxToken]
+    );
+
+    // Watch address changes → debounced geocode
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (!formData.address.trim()) {
+            setPreviewLocation(null);
+            return;
+        }
+        debounceRef.current = setTimeout(() => {
+            geocodeAddress(formData.address);
+        }, 600);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [formData.address, geocodeAddress]);
+
+    // Thumbnail URL for preview card
+    const thumbnailUrl = useMemo(() => {
+        const imageFile = uploadedFiles.find(f => f.type.startsWith('image/'));
+        return imageFile ? URL.createObjectURL(imageFile) : null;
+    }, [uploadedFiles]);
+
+    // Cancel handler — map stays where it is
+    const handleCancel = () => {
+        setIsCreatingRequest(false);
+        setFormData(INITIAL_FORM);
+        setUploadedFiles([]);
+        setPreviewLocation(null);
+    };
 
     if (!mapboxToken) {
-        return <div className="h-screen w-screen flex items-center justify-center bg-black text-white">Error: Mapbox token not found.</div>;
+        return (
+            <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>
+                Error: Mapbox token not found.
+            </div>
+        );
     }
 
     return (
         <div className="home-container">
-            {/* Navbar Overlay */}
-            <nav className="overlay-navbar">
+            {/* Navbar */}
+            <nav
+                className="overlay-navbar"
+                style={{
+                    opacity: isCreatingRequest ? 0 : 1,
+                    pointerEvents: isCreatingRequest ? 'none' : 'auto',
+                    transition: 'opacity 0.3s',
+                }}
+            >
                 <a href="#" className="nav-link">Your Requests</a>
                 <a href="#" className="nav-link">Your Actions</a>
                 <a href="#" className="nav-link">Your Profile</a>
             </nav>
 
+            {/* Full-screen map */}
             <Map
+                ref={mapRef}
                 initialViewState={{
                     longitude: -79.3832,
                     latitude: 43.6532,
@@ -31,8 +131,6 @@ const Home: React.FC = () => {
                 mapboxAccessToken={mapboxToken}
             >
                 <Source id="mapbox-dem" type="raster-dem" url="mapbox://mapbox.mapbox-terrain-dem-v1" tileSize={512} maxzoom={14} />
-
-                {/* 3D Buildings Layer */}
                 <Layer
                     id="3d-buildings"
                     source="composite"
@@ -42,31 +140,54 @@ const Home: React.FC = () => {
                     minzoom={15}
                     paint={{
                         'fill-extrusion-color': '#aaa',
-                        'fill-extrusion-height': [
-                            'interpolate',
-                            ['linear'],
-                            ['zoom'],
-                            15,
-                            0,
-                            15.05,
-                            ['get', 'height']
-                        ],
-                        'fill-extrusion-base': [
-                            'interpolate',
-                            ['linear'],
-                            ['zoom'],
-                            15,
-                            0,
-                            15.05,
-                            ['get', 'min_height']
-                        ],
-                        'fill-extrusion-opacity': 0.6
+                        'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
+                        'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+                        'fill-extrusion-opacity': 0.6,
                     }}
                 />
+
+                {/* Preview card marker on map */}
+                {isCreatingRequest && previewLocation && (
+                    <Marker
+                        longitude={previewLocation.lng}
+                        latitude={previewLocation.lat}
+                        anchor="bottom"
+                    >
+                        <RequestPreviewCard
+                            title={formData.title}
+                            address={formData.address}
+                            type={formData.type}
+                            severity={formData.severity}
+                            description={formData.description}
+                            thumbnailUrl={thumbnailUrl}
+                        />
+                    </Marker>
+                )}
             </Map>
 
+            {/* Right-side form panel */}
+            <div className={`form-panel ${isCreatingRequest ? 'form-panel--open' : ''}`}>
+                {isCreatingRequest && (
+                    <CrisisRequestForm
+                        onCancel={handleCancel}
+                        formData={formData}
+                        setFormData={setFormData}
+                        uploadedFiles={uploadedFiles}
+                        setUploadedFiles={setUploadedFiles}
+                    />
+                )}
+            </div>
+
             {/* Primary Action Button */}
-            <button className="create-request-btn">
+            <button
+                className="create-request-btn"
+                onClick={() => setIsCreatingRequest(true)}
+                style={{
+                    opacity: isCreatingRequest ? 0 : 1,
+                    pointerEvents: isCreatingRequest ? 'none' : 'auto',
+                    transform: isCreatingRequest ? 'translate(-50%, 20px)' : 'translate(-50%, 0)',
+                }}
+            >
                 Create Crisis Request
             </button>
 
