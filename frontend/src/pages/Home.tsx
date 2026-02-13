@@ -310,6 +310,7 @@ const Home: React.FC = () => {
                         setUploadedFiles={setUploadedFiles}
                         onSubmit={handleSubmit}
                         isSubmitting={isSubmitting}
+                        mapboxToken={mapboxToken}
                     />
                 )}
             </div>

@@ -17,6 +17,7 @@ interface CrisisRequestFormProps {
     setUploadedFiles: React.Dispatch<React.SetStateAction<File[]>>;
     onSubmit: (e: React.FormEvent) => void;
     isSubmitting: boolean;
+    mapboxToken: string; // New prop for autocomplete
 }
 
 const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
@@ -27,15 +28,52 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
     setUploadedFiles,
     onSubmit,
     isSubmitting,
+    mapboxToken,
 }) => {
     const [isDragging, setIsDragging] = useState(false);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Autocomplete logic for address field
+        if (name === 'address') {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (value.trim().length < 3) {
+                setSuggestions([]);
+                setShowSuggestions(false);
+                return;
+            }
+
+            debounceRef.current = setTimeout(async () => {
+                if (!mapboxToken) return;
+                try {
+                    const encoded = encodeURIComponent(value);
+                    const res = await fetch(
+                        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${mapboxToken}&limit=5`
+                    );
+                    const data = await res.json();
+                    if (data.features) {
+                        setSuggestions(data.features);
+                        setShowSuggestions(true);
+                    }
+                } catch (err) {
+                    console.error('Autocomplete error:', err);
+                }
+            }, 300);
+        }
+    };
+
+    const handleSelectSuggestion = (place: any) => {
+        setFormData(prev => ({ ...prev, address: place.place_name }));
+        setSuggestions([]);
+        setShowSuggestions(false);
     };
 
     const handleFiles = (files: FileList) => {
@@ -87,15 +125,34 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
 
                 <div className="field">
                     <label className="field-label">Address</label>
-                    <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        placeholder="Street address or coordinates"
-                        required
-                        className="field-input"
-                    />
+                    <div className={`address-combobox ${showSuggestions && suggestions.length > 0 ? 'address-combobox--open' : ''}`}>
+                        <input
+                            type="text"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                            placeholder="Start typing to search..."
+                            required
+                            className="address-combobox__input"
+                            autoComplete="off"
+                        />
+                        {showSuggestions && suggestions.length > 0 && (
+                            <ul className="address-combobox__list">
+                                {suggestions.map((place) => (
+                                    <li
+                                        key={place.id}
+                                        className="address-combobox__item"
+                                        onMouseDown={() => handleSelectSuggestion(place)}
+                                    >
+                                        <span className="address-combobox__icon">📍</span>
+                                        <span className="address-combobox__text">{place.place_name}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                 </div>
 
                 <div className="field-row">

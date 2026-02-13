@@ -140,33 +140,37 @@ code {
 
 .form-panel {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 420px;
-  height: 100vh;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%) translateX(calc(100% + 2rem));
+  width: 400px;
+  max-height: calc(100vh - 2rem);
   z-index: 200;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, rgba(22, 22, 26, 0.96), rgba(14, 14, 18, 0.98));
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.4);
-  transform: translateX(100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
 .form-panel--open {
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(0);
 }
 
-/* Shine on left edge */
+/* Shine on top edge */
 .form-panel::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg,
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
       transparent 0%,
       rgba(255, 255, 255, 0.08) 20%,
       rgba(255, 255, 255, 0.12) 50%,
@@ -245,7 +249,6 @@ code {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  flex: 1;
 }
 
 .field-label {
@@ -289,6 +292,10 @@ code {
 .field-row {
   display: flex;
   gap: 0.6rem;
+}
+
+.field-row>.field {
+  flex: 1;
 }
 
 
@@ -584,4 +591,104 @@ code {
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
   border-top: 8px solid rgba(16, 16, 20, 0.97);
+}
+
+
+/* ─────────────────────────────────────────── */
+/*  ADDRESS COMBOBOX (extending-field style)   */
+/* ─────────────────────────────────────────── */
+
+.address-combobox {
+  position: relative;
+}
+
+/* The input inherits .field-input styling but we override border-radius when open */
+.address-combobox__input {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: #eee;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  transition: all 0.2s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+}
+
+.address-combobox__input::placeholder {
+  color: #555;
+}
+
+.address-combobox__input:focus {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+}
+
+/* When dropdown is open: flatten the bottom of the input */
+.address-combobox--open .address-combobox__input {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+/* The suggestion list — seamlessly continues the input border */
+.address-combobox__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
+  /* shared border with input */
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* focus ring extends to include the list */
+.address-combobox--open .address-combobox__input:focus~.address-combobox__list,
+.address-combobox--open .address-combobox__list {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.address-combobox__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.address-combobox__item:last-child {
+  border-bottom: none;
+}
+
+.address-combobox__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.address-combobox__icon {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  opacity: 0.5;
+}
+
+.address-combobox__text {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+.address-combobox__item:hover .address-combobox__text {
+  color: #fff;
 }
