@@ -31,11 +31,10 @@ public class S3FileStorageServiceImpl implements FileStorageService {
 
         try {
             s3Client.putObject(PutObjectRequest.builder()
-                            .bucket(bucketName)
-                            .key(fileName)
-                            .contentType(file.getContentType())
-                            .acl("public-read") // Makes the image viewable by URL
-                            .build(),
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .contentType(file.getContentType())
+                    .build(),
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
             // Return the full cloud URL

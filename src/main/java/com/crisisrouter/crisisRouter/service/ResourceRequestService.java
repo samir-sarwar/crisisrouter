@@ -18,4 +18,7 @@ public interface ResourceRequestService {
 
     // Updates status (e.g., OPEN to CLAIMED)
     ResourceRequestDTO updateStatus(UUID id, String status);
+
+    // Fetches all requests created by the currently authenticated user
+    List<ResourceRequestDTO> getMyRequests();
 }

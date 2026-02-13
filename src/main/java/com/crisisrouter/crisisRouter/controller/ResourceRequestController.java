@@ -32,21 +32,30 @@ public class ResourceRequestController {
 
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
-    //GET /api/requests/nearby
+
+    // GET /api/requests/me
+    // Get all requests created by the currently logged-in user
+    @GetMapping("/me")
+    public ResponseEntity<List<ResourceRequestDTO>> getMyRequests() {
+        List<ResourceRequestDTO> myRequests = resourceRequestService.getMyRequests();
+        return ResponseEntity.ok(myRequests);
+    }
+
+    // GET /api/requests/nearby
     // Find based on location
 
     @GetMapping("/nearby")
     public ResponseEntity<List<ResourceRequestDTO>> getNearbyRequests(
             @RequestParam Double longitude,
             @RequestParam Double latitude,
-            @RequestParam(defaultValue = "10000.0") Double radiusInMeters){
+            @RequestParam(defaultValue = "10000.0") Double radiusInMeters) {
         List<ResourceRequestDTO> nearby = resourceRequestService.findNearby(longitude, latitude, radiusInMeters);
         return ResponseEntity.ok(nearby);
     }
 
     // GET /api/requests/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<ResourceRequestDTO> getById(@PathVariable UUID id){
+    public ResponseEntity<ResourceRequestDTO> getById(@PathVariable UUID id) {
         ResourceRequestDTO request = resourceRequestService.getById(id);
         return ResponseEntity.ok(request);
 
@@ -56,7 +65,7 @@ public class ResourceRequestController {
     @PatchMapping("/{id}")
     public ResponseEntity<ResourceRequestDTO> updateStatus(
             @PathVariable UUID id,
-            @RequestParam String status){
+            @RequestParam String status) {
         ResourceRequestDTO updated = resourceRequestService.updateStatus(id, status);
         return ResponseEntity.ok(updated);
     }

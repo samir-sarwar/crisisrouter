@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Map, { Layer, Source, Marker } from 'react-map-gl/mapbox';
 import CrisisRequestForm from '../components/CrisisRequestForm';
 import RequestPreviewCard from '../components/RequestPreviewCard';
+import ActiveRequestCard from '../components/ActiveRequestCard';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface FormData {
@@ -17,6 +18,23 @@ interface Category {
     id: string;
     name: string;
     description: string;
+}
+
+// Represents a saved crisis request displayed on the map
+interface ActiveRequest {
+    id: string;
+    title: string;
+    description: string;
+    address: string;
+    severityLevel: number;
+    latitude: number;
+    longitude: number;
+    imageUrl: string | null;
+    status: string;
+    creatorFirstName: string;
+    creatorLastName: string;
+    type: string;           // category display name
+    customCategory?: string;
 }
 
 const severityMap: Record<string, number> = {
@@ -53,6 +71,12 @@ const Home: React.FC = () => {
     // Geocoded location for preview card
     const [previewLocation, setPreviewLocation] = useState<{ lng: number; lat: number } | null>(null);
 
+    // ── DEMO: Active requests stored in local state ──────────────────
+    // In this demo version, submitted requests are added directly to
+    // local state so the user sees their own requests immediately on
+    // the map. Only requests from this session are shown.
+    const [activeRequests, setActiveRequests] = useState<ActiveRequest[]>([]);
+
     // Fetch Categories on Mount
     useEffect(() => {
         fetch('/api/categories')
@@ -63,6 +87,38 @@ const Home: React.FC = () => {
             .then((data: Category[]) => setCategories(data))
             .catch(err => console.error('Categories fetch error:', err));
     }, []);
+
+    // Fetch the current user's saved requests on mount
+    useEffect(() => {
+        const fetchMyRequests = async () => {
+            try {
+                const res = await fetch('/api/requests/me', {
+                    credentials: 'include',
+                });
+                if (!res.ok) return; // silently skip if not authenticated yet
+                const data = await res.json();
+
+                // Wait for categories to resolve type names
+                let cats = categories;
+                if (cats.length === 0) {
+                    const catRes = await fetch('/api/categories');
+                    if (catRes.ok) cats = await catRes.json();
+                }
+
+                setActiveRequests(data.map((r: any) => {
+                    const matchedCat = cats.find((c: Category) => c.id === r.categoryId);
+                    return {
+                        ...r,
+                        type: r.customCategory || matchedCat?.name || 'General',
+                        imageUrl: r.imageUrl || null,
+                    };
+                }));
+            } catch (err) {
+                console.error('Failed to fetch saved requests:', err);
+            }
+        };
+        fetchMyRequests();
+    }, [categories]);
 
     // Debounced geocoding
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -215,8 +271,34 @@ const Home: React.FC = () => {
             const result = await response.json();
             console.log('Request created:', result);
 
-            // Success — close form and reset
-            alert('Crisis request submitted successfully!');
+            // ── DEMO: Add the new request to local state ─────────
+            // The backend returns the full DTO with id, lat/lng, etc.
+            // We push it into activeRequests so a marker appears on
+            // the map immediately.
+            const newActiveRequest: ActiveRequest = {
+                id: result.id,
+                title: result.title,
+                description: result.description,
+                address: result.address,
+                severityLevel: result.severityLevel,
+                latitude: result.latitude,
+                longitude: result.longitude,
+                imageUrl: result.imageUrl || null,
+                status: result.status,
+                creatorFirstName: result.creatorFirstName,
+                creatorLastName: result.creatorLastName,
+                type: formData.type === 'Other' && formData.customCategory
+                    ? formData.customCategory
+                    : formData.type,
+                customCategory: result.customCategory,
+            };
+            setActiveRequests(prev => {
+                // Avoid duplicates (in case the mount fetch already loaded it)
+                if (prev.find(r => r.id === newActiveRequest.id)) return prev;
+                return [...prev, newActiveRequest];
+            });
+
+            // Success — close form and reset (map stays at location)
             handleCancel();
         } catch (error) {
             console.error('Submission error:', error);
@@ -280,7 +362,7 @@ const Home: React.FC = () => {
                     }}
                 />
 
-                {/* Preview card marker on map */}
+                {/* Preview card marker on map (while creating) */}
                 {isCreatingRequest && previewLocation && (
                     <Marker
                         longitude={previewLocation.lng}
@@ -297,6 +379,139 @@ const Home: React.FC = () => {
                         />
                     </Marker>
                 )}
+
+                {/* ── DEMO: Render saved requests as map markers ── */}
+                {activeRequests.map(req => (
+                    <Marker
+                        key={req.id}
+                        longitude={req.longitude}
+                        latitude={req.latitude}
+                        anchor="bottom"
+                    >
+                        <ActiveRequestCard
+                            title={req.title}
+                            address={req.address}
+                            type={req.type}
+                            severity={String(req.severityLevel)}
+                            description={req.description}
+                            imageUrl={req.imageUrl}
+                            creatorName={`${req.creatorFirstName} ${req.creatorLastName}`}
+                            isOwnRequest={true} /* Demo: all requests are the user's own */
+                        />
+                    </Marker>
+                ))}
+
+                {/*
+                 * ══════════════════════════════════════════════════════
+                 * REAL IMPLEMENTATION (multi-user with API + WebSocket)
+                 * ══════════════════════════════════════════════════════
+                 *
+                 * The code below is the production-ready version that:
+                 *  1. Fetches ALL of the current user's requests from
+                 *     the backend on mount via GET /api/requests/me
+                 *  2. Subscribes to WebSocket topic /topic/requests so
+                 *     new requests from ANY user appear in real-time
+                 *  3. Compares creatorFirstName/LastName (or a userId
+                 *     field if added later) to decide isOwnRequest
+                 *  4. Shows a green "Volunteer" button on other users'
+                 *     requests
+                 *
+                 * To enable: remove these comment blocks and delete or
+                 * comment out the DEMO activeRequests state + submit
+                 * handler additions above.
+                 *
+                 * ── Step 1: Fetch user's saved requests on mount ──
+                 *
+                 * useEffect(() => {
+                 *     const fetchMyRequests = async () => {
+                 *         try {
+                 *             const res = await fetch('/api/requests/me', {
+                 *                 credentials: 'include',
+                 *             });
+                 *             if (!res.ok) return;
+                 *             const data = await res.json();
+                 *             setActiveRequests(data.map((r: any) => ({
+                 *                 ...r,
+                 *                 type: r.customCategory || 'General',
+                 *                 imageUrl: r.imageUrl || null,
+                 *             })));
+                 *         } catch (err) {
+                 *             console.error('Failed to fetch requests:', err);
+                 *         }
+                 *     };
+                 *     fetchMyRequests();
+                 * }, []);
+                 *
+                 * ── Step 2: WebSocket subscription for live updates ──
+                 *
+                 * import SockJS from 'sockjs-client';
+                 * import { Client } from '@stomp/stompjs';
+                 *
+                 * useEffect(() => {
+                 *     const client = new Client({
+                 *         webSocketFactory: () => new SockJS('/ws'),
+                 *         onConnect: () => {
+                 *             client.subscribe('/topic/requests', (message) => {
+                 *                 const newReq = JSON.parse(message.body);
+                 *                 setActiveRequests(prev => {
+                 *                     // Avoid duplicates
+                 *                     if (prev.find(r => r.id === newReq.id)) return prev;
+                 *                     return [...prev, {
+                 *                         ...newReq,
+                 *                         type: newReq.customCategory || 'General',
+                 *                         imageUrl: newReq.imageUrl || null,
+                 *                     }];
+                 *                 });
+                 *             });
+                 *         },
+                 *     });
+                 *     client.activate();
+                 *     return () => { client.deactivate(); };
+                 * }, []);
+                 *
+                 * ── Step 3: Determine ownership ──
+                 * Fetch the current user's info once and compare:
+                 *
+                 * const [currentUser, setCurrentUser] = useState<{firstName: string; lastName: string} | null>(null);
+                 *
+                 * useEffect(() => {
+                 *     fetch('/api/users/me', { credentials: 'include' })
+                 *         .then(res => res.json())
+                 *         .then(u => setCurrentUser({ firstName: u.firstName, lastName: u.lastName }))
+                 *         .catch(() => {});
+                 * }, []);
+                 *
+                 * // Then in the Marker render:
+                 * const isOwn = currentUser
+                 *     && req.creatorFirstName === currentUser.firstName
+                 *     && req.creatorLastName === currentUser.lastName;
+                 *
+                 * <ActiveRequestCard
+                 *     ...
+                 *     isOwnRequest={isOwn}
+                 *     onVolunteer={() => handleVolunteer(req.id)}
+                 * />
+                 *
+                 * ── Step 4: Volunteer handler ──
+                 *
+                 * const handleVolunteer = async (requestId: string) => {
+                 *     try {
+                 *         const res = await fetch(`/api/requests/${requestId}/status?status=CLAIMED`, {
+                 *             method: 'PATCH',
+                 *             credentials: 'include',
+                 *         });
+                 *         if (res.ok) {
+                 *             setActiveRequests(prev =>
+                 *                 prev.map(r => r.id === requestId ? { ...r, status: 'CLAIMED' } : r)
+                 *             );
+                 *         }
+                 *     } catch (err) {
+                 *         console.error('Volunteer error:', err);
+                 *     }
+                 * };
+                 *
+                 * ══════════════════════════════════════════════════════
+                 */}
             </Map>
 
             {/* Right-side form panel */}

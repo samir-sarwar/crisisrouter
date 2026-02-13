@@ -83,6 +83,14 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
             entity.setImageUrl(imageUrl);
         }
 
+        // Build the PostGIS Point from the DTO's lat/lng
+        // (The mapper ignores 'location' so we must set it manually)
+        if (requestDTO.getLatitude() != null && requestDTO.getLongitude() != null) {
+            Point point = factory.createPoint(
+                    new Coordinate(requestDTO.getLongitude(), requestDTO.getLatitude()));
+            entity.setLocation(point);
+        }
+
         // Default new requests to OPEN status
         entity.setStatus(RequestStatus.OPEN);
 
@@ -139,5 +147,22 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
         // (This is where you will trigger your AuditLog later!)
 
         return mapper.toDTO(updated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ResourceRequestDTO> getMyRequests() {
+        String email = getCurrentUserEmail();
+        if (email == null) {
+            throw new RuntimeException("User must be authenticated");
+        }
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+        return requestRepository.findByUserId(currentUser.getId())
+                .stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
     }
 }
