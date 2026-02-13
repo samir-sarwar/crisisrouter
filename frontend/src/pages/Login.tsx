@@ -1,16 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import '../App.css'
 
 function Login() {
     const [status, setStatus] = useState('IDLE')
-    const navigate = useNavigate()
 
     const handleStart = () => {
         setStatus('SCANNING')
-        // Simulate a delay or process before navigation
+        // Redirect to backend Auth0 login — after success the backend redirects to /home
         setTimeout(() => {
-            navigate('/home')
+            window.location.href = '/oauth2/authorization/auth0'
         }, 1500)
     }
 

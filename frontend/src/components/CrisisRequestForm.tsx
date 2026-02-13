@@ -6,6 +6,7 @@ interface FormData {
     description: string;
     severity: string;
     type: string;
+    customCategory: string;
 }
 
 interface CrisisRequestFormProps {
@@ -14,6 +15,8 @@ interface CrisisRequestFormProps {
     setFormData: React.Dispatch<React.SetStateAction<FormData>>;
     uploadedFiles: File[];
     setUploadedFiles: React.Dispatch<React.SetStateAction<File[]>>;
+    onSubmit: (e: React.FormEvent) => void;
+    isSubmitting: boolean;
 }
 
 const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
@@ -22,6 +25,8 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
     setFormData,
     uploadedFiles,
     setUploadedFiles,
+    onSubmit,
+    isSubmitting,
 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,12 +57,6 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
         setUploadedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log('Submitted:', formData, uploadedFiles);
-        onCancel();
-    };
-
     return (
         <>
             {/* Header */}
@@ -72,7 +71,7 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
             </div>
 
             {/* Body */}
-            <form onSubmit={handleSubmit} className="modal-body">
+            <form onSubmit={onSubmit} className="modal-body">
                 <div className="field">
                     <label className="field-label">Title</label>
                     <input
@@ -94,6 +93,7 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
                         value={formData.address}
                         onChange={handleChange}
                         placeholder="Street address or coordinates"
+                        required
                         className="field-input"
                     />
                 </div>
@@ -107,11 +107,11 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
                             onChange={handleChange}
                             className="field-input"
                         >
-                            <option value="medical">Medical</option>
-                            <option value="security">Security</option>
-                            <option value="fire">Fire</option>
-                            <option value="logistics">Logistics</option>
-                            <option value="other">Other</option>
+                            <option value="Food">Food</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Security">Security</option>
+                            <option value="Natural Disaster">Natural Disaster</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
                     <div className="field">
@@ -129,6 +129,22 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
                         </select>
                     </div>
                 </div>
+
+                {/* Custom category input — only visible when "Other" is selected */}
+                {formData.type === 'Other' && (
+                    <div className="field">
+                        <label className="field-label">Custom Category</label>
+                        <input
+                            type="text"
+                            name="customCategory"
+                            value={formData.customCategory}
+                            onChange={handleChange}
+                            placeholder="Describe the category..."
+                            required
+                            className="field-input"
+                        />
+                    </div>
+                )}
 
                 <div className="field">
                     <label className="field-label">Details</label>
@@ -198,11 +214,11 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
                 </div>
 
                 <div className="modal-actions">
-                    <button type="button" className="btn btn--ghost" onClick={onCancel}>
+                    <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={isSubmitting}>
                         Cancel
                     </button>
-                    <button type="submit" className="btn btn--primary">
-                        Submit Request
+                    <button type="submit" className="btn btn--primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'Submitting...' : 'Submit Request'}
                     </button>
                 </div>
             </form>

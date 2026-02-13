@@ -68,7 +68,8 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
         // 2. ENFORCER LOGIC: Check the "Other" rule
         if (category.getName().equalsIgnoreCase("Other")) {
             if (requestDTO.getCustomCategory() == null || requestDTO.getCustomCategory().isBlank()) {
-                throw new IllegalArgumentException("A custom category description must be provided when 'Other' is selected.");
+                throw new IllegalArgumentException(
+                        "A custom category description must be provided when 'Other' is selected.");
             }
         }
 

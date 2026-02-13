@@ -10,14 +10,29 @@ interface FormData {
     description: string;
     severity: string;
     type: string;
+    customCategory: string;
 }
+
+interface Category {
+    id: string;
+    name: string;
+    description: string;
+}
+
+const severityMap: Record<string, number> = {
+    low: 1,
+    medium: 2,
+    high: 3,
+    critical: 4,
+};
 
 const INITIAL_FORM: FormData = {
     title: '',
     address: '',
     description: '',
     severity: 'medium',
-    type: 'medical',
+    type: 'Medical',
+    customCategory: '',
 };
 
 const Home: React.FC = () => {
@@ -26,6 +41,10 @@ const Home: React.FC = () => {
 
     // UI state
     const [isCreatingRequest, setIsCreatingRequest] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Categories from backend
+    const [categories, setCategories] = useState<Category[]>([]);
 
     // Shared form state (lifted)
     const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
@@ -33,6 +52,17 @@ const Home: React.FC = () => {
 
     // Geocoded location for preview card
     const [previewLocation, setPreviewLocation] = useState<{ lng: number; lat: number } | null>(null);
+
+    // Fetch Categories on Mount
+    useEffect(() => {
+        fetch('/api/categories')
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch categories');
+                return res.json();
+            })
+            .then((data: Category[]) => setCategories(data))
+            .catch(err => console.error('Categories fetch error:', err));
+    }, []);
 
     // Debounced geocoding
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -90,6 +120,110 @@ const Home: React.FC = () => {
         setFormData(INITIAL_FORM);
         setUploadedFiles([]);
         setPreviewLocation(null);
+    };
+
+    // Submit handler — geocode final address, map category → UUID, POST to backend
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        try {
+            // 1. Geocode the address for lat/lng
+            let lat = previewLocation?.lat;
+            let lng = previewLocation?.lng;
+
+            if (!lat || !lng) {
+                // Final geocode attempt if preview location wasn't set
+                const encoded = encodeURIComponent(formData.address.trim());
+                const geoRes = await fetch(
+                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${mapboxToken}&limit=1`
+                );
+                const geoData = await geoRes.json();
+                if (geoData.features && geoData.features.length > 0) {
+                    [lng, lat] = geoData.features[0].center;
+                } else {
+                    alert('Could not locate the address. Please enter a valid address.');
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // 2. Map category name → UUID (re-fetch if empty)
+            let cats = categories;
+            if (cats.length === 0) {
+                const catRes = await fetch('/api/categories');
+                if (catRes.ok) cats = await catRes.json();
+            }
+            const matchedCategory = cats.find(
+                c => c.name.toLowerCase() === formData.type.toLowerCase()
+            );
+            if (!matchedCategory) {
+                console.error('Category match failed. type:', formData.type, 'categories:', cats);
+                alert('Selected category not found. Please try again.');
+                setIsSubmitting(false);
+                return;
+            }
+
+            // 3. Fetch current user info for creatorFirstName/lastName
+            const meRes = await fetch('/api/users/me', { credentials: 'include' });
+            if (!meRes.ok) {
+                alert('You must be logged in to submit a request. Redirecting to login...');
+                window.location.href = '/';
+                return;
+            }
+            const me = await meRes.json();
+
+            // 4. Build the DTO
+            const requestDTO = {
+                title: formData.title,
+                description: formData.description,
+                address: formData.address,
+                severityLevel: severityMap[formData.severity] || 2,
+                categoryId: matchedCategory.id,
+                customCategory: formData.type === 'Other' ? formData.customCategory : null,
+                latitude: lat,
+                longitude: lng,
+                creatorFirstName: me.firstName || 'Unknown',
+                creatorLastName: me.lastName || 'User',
+                status: 'OPEN',
+            };
+
+            // 5. Build multipart form data
+            const bodyFormData = new FormData();
+            bodyFormData.append(
+                'request',
+                new Blob([JSON.stringify(requestDTO)], { type: 'application/json' })
+            );
+
+            const imageFile = uploadedFiles.find(f => f.type.startsWith('image/'));
+            if (imageFile) {
+                bodyFormData.append('image', imageFile);
+            }
+
+            // 6. POST to backend
+            const response = await fetch('/api/requests', {
+                method: 'POST',
+                body: bodyFormData,
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to submit request');
+            }
+
+            const result = await response.json();
+            console.log('Request created:', result);
+
+            // Success — close form and reset
+            alert('Crisis request submitted successfully!');
+            handleCancel();
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert('Failed to submit request. See console for details.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (!mapboxToken) {
@@ -156,7 +290,7 @@ const Home: React.FC = () => {
                         <RequestPreviewCard
                             title={formData.title}
                             address={formData.address}
-                            type={formData.type}
+                            type={formData.type === 'Other' && formData.customCategory ? formData.customCategory : formData.type}
                             severity={formData.severity}
                             description={formData.description}
                             thumbnailUrl={thumbnailUrl}
@@ -174,6 +308,8 @@ const Home: React.FC = () => {
                         setFormData={setFormData}
                         uploadedFiles={uploadedFiles}
                         setUploadedFiles={setUploadedFiles}
+                        onSubmit={handleSubmit}
+                        isSubmitting={isSubmitting}
                     />
                 )}
             </div>

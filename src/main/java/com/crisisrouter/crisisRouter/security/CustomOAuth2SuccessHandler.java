@@ -22,7 +22,7 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) throws IOException, ServletException {
+            Authentication authentication) throws IOException, ServletException {
 
         Object principal = authentication.getPrincipal();
 
@@ -65,12 +65,11 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
                                 .role(UserRole.VOLUNTEER) // Default role
                                 .build();
                         userRepository.save(newUser);
-                    }
-            );
+                    });
         }
 
         // 4. Redirect to Frontend (Vite)
         // Ensure this matches your frontend URL exactly
-        getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/");
+        getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/home");
     }
 }

@@ -1,4 +1,5 @@
--- Create some base categories
-INSERT INTO categories (id, name, description) VALUES ('550e8400-e29b-41d4-a716-446655440000', 'Food', 'Emergency food and water supplies');
-INSERT INTO categories (id, name, description) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Medical', 'First aid and urgent medical care');
-INSERT INTO categories (id, name, description) VALUES ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'Other', 'Anything not covered by existing categories');
+INSERT INTO categories (id, name, description) VALUES ('550e8400-e29b-41d4-a716-446655440000', 'Food', 'Emergency food and water supplies') ON CONFLICT (id) DO NOTHING;
+INSERT INTO categories (id, name, description) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Medical', 'First aid and urgent medical care') ON CONFLICT (id) DO NOTHING;
+INSERT INTO categories (id, name, description) VALUES ('7c9e6679-7425-40de-944b-e07fc1f90ae7', 'Security', 'Security threats and safety concerns') ON CONFLICT (id) DO NOTHING;
+INSERT INTO categories (id, name, description) VALUES ('8a3b5c72-61f4-4e3d-b5a2-d4f80c913a11', 'Natural Disaster', 'Earthquakes, floods, storms, and other natural events') ON CONFLICT (id) DO NOTHING;
+INSERT INTO categories (id, name, description) VALUES ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'Other', 'Anything not covered by existing categories') ON CONFLICT (id) DO NOTHING;

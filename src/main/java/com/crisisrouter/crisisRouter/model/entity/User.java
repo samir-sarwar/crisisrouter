@@ -17,11 +17,10 @@ import java.time.LocalDateTime;
 @Getter // creates getters and setters for all fields
 @Setter
 @NoArgsConstructor // creates a blank constructor, Hibernate requires this
-                    // to recreate objects when pulled out of db
+                   // to recreate objects when pulled out of db
 @AllArgsConstructor
 @Builder // easier syntax
-public class User
-{
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -35,8 +34,7 @@ public class User
     @Column(nullable = false)
     private String lastName;
 
-
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)
@@ -47,7 +45,7 @@ public class User
     private LocalDateTime createdAt;
 
     @PrePersist
-    public void onCreate(){
+    public void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
@@ -58,6 +56,5 @@ public class User
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Claim> claims = new ArrayList<>();
-
 
 }
