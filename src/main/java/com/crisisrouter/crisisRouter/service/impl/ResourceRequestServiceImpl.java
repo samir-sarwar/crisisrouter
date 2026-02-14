@@ -165,4 +165,37 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
                 .map(mapper::toDTO)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public ResourceRequestDTO updateRequest(UUID id, ResourceRequestDTO dto) {
+        ResourceRequest request = requestRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Request not found with ID: " + id));
+
+        // Only allow editing if the request is still OPEN
+        if (request.getStatus() != RequestStatus.OPEN) {
+            throw new IllegalStateException("Cannot edit a request that is " + request.getStatus());
+        }
+
+        // Update editable fields
+        if (dto.getTitle() != null)
+            request.setTitle(dto.getTitle());
+        if (dto.getDescription() != null)
+            request.setDescription(dto.getDescription());
+        if (dto.getAddress() != null)
+            request.setAddress(dto.getAddress());
+        if (dto.getSeverityLevel() >= 1 && dto.getSeverityLevel() <= 5) {
+            request.setSeverityLevel(dto.getSeverityLevel());
+        }
+
+        // Re-set location if coordinates changed
+        if (dto.getLatitude() != null && dto.getLongitude() != null) {
+            Point point = factory.createPoint(
+                    new Coordinate(dto.getLongitude(), dto.getLatitude()));
+            request.setLocation(point);
+        }
+
+        ResourceRequest saved = requestRepository.save(request);
+        return mapper.toDTO(saved);
+    }
 }

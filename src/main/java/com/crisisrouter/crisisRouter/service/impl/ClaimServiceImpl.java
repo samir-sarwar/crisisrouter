@@ -12,6 +12,8 @@ import com.crisisrouter.crisisRouter.service.ClaimService;
 import com.crisisrouter.crisisRouter.service.dto.ClaimDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,117 +26,176 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ClaimServiceImpl implements ClaimService {
 
-    private final ClaimRepository claimRepository;
-    private final ResourceRequestRepository requestRepository;
-    private final UserRepository userRepository;
-    private final SimpMessagingTemplate messagingTemplate;
-    private final AuditService auditService;
+        private final ClaimRepository claimRepository;
+        private final ResourceRequestRepository requestRepository;
+        private final UserRepository userRepository;
+        private final SimpMessagingTemplate messagingTemplate;
+        private final AuditService auditService;
 
-    @Override
-    @Transactional
-    public ClaimDTO claimRequest(UUID requestId, UUID volunteerId) {
-        // 1. Find the request
-        ResourceRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found"));
-
-        RequestStatus currentStatus = request.getStatus();
-        String oldStatus = currentStatus.toString();
-
-        // 2. Validate that it is actually OPEN
-        if (request.getStatus() != RequestStatus.OPEN) {
-            throw new IllegalStateException("Request is not OPEN. Current status: " + request.getStatus());
+        // ── Auth helper (same pattern as ResourceRequestServiceImpl) ──
+        private String getCurrentUserEmail() {
+                Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                if (principal instanceof OidcUser) {
+                        return ((OidcUser) principal).getEmail();
+                }
+                return null;
         }
 
-        // 3. Find the volunteer
-        User volunteer = userRepository.findById(volunteerId)
-                .orElseThrow(() -> new RuntimeException("Volunteer not found"));
+        @Override
+        @Transactional
+        public ClaimDTO claimRequest(UUID requestId, UUID volunteerId) {
+                ResourceRequest request = requestRepository.findById(requestId)
+                                .orElseThrow(() -> new RuntimeException("Request not found"));
 
-        // 4. Create the Claim record
-        Claim claim = new Claim();
-        claim.setRequest(request);
-        claim.setUser(volunteer);
-        claim.setClaimedAt(LocalDateTime.now());
-        claim.setStatus("ACTIVE");
+                RequestStatus currentStatus = request.getStatus();
+                String oldStatus = currentStatus.toString();
 
-        // 5. Update the Request status
-        request.setStatus(RequestStatus.CLAIMED);
+                if (request.getStatus() != RequestStatus.OPEN) {
+                        throw new IllegalStateException("Request is not OPEN. Current status: " + request.getStatus());
+                }
 
-        // 6. Save changes
-        requestRepository.save(request);
-        Claim savedClaim = claimRepository.save(claim);
+                User volunteer = userRepository.findById(volunteerId)
+                                .orElseThrow(() -> new RuntimeException("Volunteer not found"));
 
-        // 7. PREPARE DTO (Moved up so we can use it in WebSocket)
-        ClaimDTO claimDTO = new ClaimDTO(
-                savedClaim.getId(),
-                request.getId(),
-                volunteer.getId(),
-                savedClaim.getClaimedAt(),
-                savedClaim.getStatus()
-        );
+                Claim claim = new Claim();
+                claim.setRequest(request);
+                claim.setUser(volunteer);
+                claim.setClaimedAt(LocalDateTime.now());
+                claim.setStatus("ACTIVE");
 
-        // 8. BROADCAST SAFE DTO (Fixes Recursion & PostGIS error)
-        messagingTemplate.convertAndSend("/topic/claim/" + requestId, claimDTO);
+                request.setStatus(RequestStatus.CLAIMED);
 
-        String oldStatusJson = "{\"status\": \"" + oldStatus + "\"}";
-        String newStatusJson = "{\"status\": \"CLAIMED\"}";
+                requestRepository.save(request);
+                Claim savedClaim = claimRepository.save(claim);
 
-        // 10. Audit Log
-        auditService.logAction(
-                "CLAIM_REQUEST",
-                "ResourceRequest",
-                request.getId(),
-                oldStatusJson,             // Now it passes valid JSON
-                newStatusJson,             // Now it passes valid JSON
-                volunteer
-        );
+                ClaimDTO claimDTO = toClaimDTO(savedClaim);
 
-        return claimDTO;
-    }
+                messagingTemplate.convertAndSend("/topic/claim/" + requestId, claimDTO);
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClaimDTO> getVolunteerClaims(UUID volunteerId) {
-        List<Claim> claims = claimRepository.findByUserId(volunteerId);
+                String oldStatusJson = "{\"status\": \"" + oldStatus + "\"}";
+                String newStatusJson = "{\"status\": \"CLAIMED\"}";
 
-        return claims.stream()
-                .map(claim -> new ClaimDTO(
-                        claim.getId(),
-                        claim.getRequest().getId(),
-                        claim.getUser().getId(),
-                        claim.getClaimedAt(),
-                        claim.getStatus()
-                ))
-                .collect(Collectors.toList());
-    }
+                auditService.logAction(
+                                "CLAIM_REQUEST",
+                                "ResourceRequest",
+                                request.getId(),
+                                oldStatusJson,
+                                newStatusJson,
+                                volunteer);
 
-    @Override
-    @Transactional
-    public void completeClaim(UUID claimId) {
-        // 1. Find the claim
-        Claim claim = claimRepository.findById(claimId)
-                .orElseThrow(() -> new RuntimeException("Claim not found"));
+                return claimDTO;
+        }
 
-        // 2. Update Claim Status
-        claim.setStatus("FULFILLED");
+        @Override
+        @Transactional(readOnly = true)
+        public List<ClaimDTO> getVolunteerClaims(UUID volunteerId) {
+                return claimRepository.findByUserId(volunteerId).stream()
+                                .map(this::toClaimDTO)
+                                .collect(Collectors.toList());
+        }
 
-        // 3. Update Request Status
-        ResourceRequest request = claim.getRequest();
-        request.setStatus(RequestStatus.FULFILLED);
+        @Override
+        @Transactional(readOnly = true)
+        public List<ClaimDTO> getClaimsByRequestId(UUID requestId) {
+                return claimRepository.findByRequestId(requestId).stream()
+                                .map(this::toClaimDTO)
+                                .collect(Collectors.toList());
+        }
 
-        // 4. Save both
-        claimRepository.save(claim);
-        requestRepository.save(request);
+        @Override
+        @Transactional(readOnly = true)
+        public List<ClaimDTO> getMyClaims() {
+                String email = getCurrentUserEmail();
+                if (email == null) {
+                        throw new RuntimeException("User must be authenticated");
+                }
 
-        // 5. PREPARE DTO for Broadcast
-        ClaimDTO claimDTO = new ClaimDTO(
-                claim.getId(),
-                request.getId(),
-                claim.getUser().getId(),
-                claim.getClaimedAt(),
-                claim.getStatus()
-        );
+                User currentUser = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
 
-        // 6. BROADCAST COMPLETION (So the map updates instantly for everyone)
-        messagingTemplate.convertAndSend("/topic/claim/" + request.getId(), claimDTO);
-    }
+                return claimRepository.findByUserId(currentUser.getId()).stream()
+                                .map(this::toClaimDTO)
+                                .collect(Collectors.toList());
+        }
+
+        @Override
+        @Transactional
+        public void completeClaim(UUID claimId) {
+                Claim claim = claimRepository.findById(claimId)
+                                .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+                claim.setStatus("FULFILLED");
+
+                ResourceRequest request = claim.getRequest();
+                request.setStatus(RequestStatus.FULFILLED);
+
+                claimRepository.save(claim);
+                requestRepository.save(request);
+
+                ClaimDTO claimDTO = toClaimDTO(claim);
+                messagingTemplate.convertAndSend("/topic/claim/" + request.getId(), claimDTO);
+        }
+
+        @Override
+        @Transactional
+        public void dropClaim(UUID claimId) {
+                Claim claim = claimRepository.findById(claimId)
+                                .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+                if (!"ACTIVE".equals(claim.getStatus())) {
+                        throw new IllegalStateException("Can only drop an ACTIVE claim. Current: " + claim.getStatus());
+                }
+
+                claim.setStatus("DROPPED");
+                claimRepository.save(claim);
+
+                // Revert the request back to OPEN so other volunteers can claim it
+                ResourceRequest request = claim.getRequest();
+                if (request.getStatus() == RequestStatus.CLAIMED) {
+                        request.setStatus(RequestStatus.OPEN);
+                        requestRepository.save(request);
+                }
+
+                ClaimDTO claimDTO = toClaimDTO(claim);
+                messagingTemplate.convertAndSend("/topic/claim/" + request.getId(), claimDTO);
+        }
+
+        // ── Helper: Claim entity → ClaimDTO with all related info ──
+        private ClaimDTO toClaimDTO(Claim claim) {
+                ClaimDTO dto = new ClaimDTO();
+                dto.setId(claim.getId());
+                dto.setResourceRequestId(claim.getRequest().getId());
+                dto.setVolunteerId(claim.getUser().getId());
+                dto.setClaimedAt(claim.getClaimedAt());
+                dto.setStatus(claim.getStatus());
+
+                // Volunteer info
+                User volunteer = claim.getUser();
+                dto.setVolunteerFirstName(volunteer.getFirstName());
+                dto.setVolunteerLastName(volunteer.getLastName());
+                dto.setVolunteerEmail(volunteer.getEmail());
+                dto.setVolunteerPhone(volunteer.getPhoneNumber());
+
+                // Request details
+                ResourceRequest req = claim.getRequest();
+                dto.setRequestTitle(req.getTitle());
+                dto.setRequestDescription(req.getDescription());
+                dto.setRequestAddress(req.getAddress());
+                dto.setRequestSeverityLevel(req.getSeverityLevel());
+                dto.setRequestImageUrl(req.getImageUrl());
+                dto.setRequestStatus(req.getStatus().name());
+                if (req.getLocation() != null) {
+                        dto.setRequestLatitude(req.getLocation().getY());
+                        dto.setRequestLongitude(req.getLocation().getX());
+                }
+
+                // Requester (request creator) info
+                User requester = req.getUser();
+                dto.setRequesterFirstName(requester.getFirstName());
+                dto.setRequesterLastName(requester.getLastName());
+                dto.setRequesterEmail(requester.getEmail());
+                dto.setRequesterPhone(requester.getPhoneNumber());
+
+                return dto;
+        }
 }

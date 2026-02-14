@@ -45,6 +45,35 @@ public class ClaimController {
     @PatchMapping("/{claimId}/complete")
     public ResponseEntity<Void> completeClaim(@PathVariable UUID claimId) {
         claimService.completeClaim(claimId);
-        return ResponseEntity.noContent().build(); // Returns 204 No Content (Standard for void actions)
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * GET /api/claims/request/{requestId}
+     * Returns all volunteers who have claimed a given request, with their contact
+     * info.
+     */
+    @GetMapping("/request/{requestId}")
+    public ResponseEntity<List<ClaimDTO>> getClaimsByRequest(@PathVariable UUID requestId) {
+        return ResponseEntity.ok(claimService.getClaimsByRequestId(requestId));
+    }
+
+    /**
+     * GET /api/claims/me
+     * Returns all claims for the currently authenticated volunteer.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<List<ClaimDTO>> getMyClaims() {
+        return ResponseEntity.ok(claimService.getMyClaims());
+    }
+
+    /**
+     * PATCH /api/claims/{claimId}/drop
+     * Volunteer withdraws from a claim. Reverts the request to OPEN.
+     */
+    @PatchMapping("/{claimId}/drop")
+    public ResponseEntity<Void> dropClaim(@PathVariable UUID claimId) {
+        claimService.dropClaim(claimId);
+        return ResponseEntity.noContent().build();
     }
 }

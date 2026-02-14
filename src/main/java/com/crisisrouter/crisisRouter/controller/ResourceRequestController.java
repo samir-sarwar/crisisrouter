@@ -70,4 +70,14 @@ public class ResourceRequestController {
         return ResponseEntity.ok(updated);
     }
 
+    // PUT /api/requests/{id}
+    // Edit request fields (only if OPEN)
+    @PutMapping("/{id}")
+    public ResponseEntity<ResourceRequestDTO> updateRequest(
+            @PathVariable UUID id,
+            @RequestBody ResourceRequestDTO dto) {
+        ResourceRequestDTO updated = resourceRequestService.updateRequest(id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
 }

@@ -5,12 +5,15 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
 public class ResourceRequestDTO {
 
     private UUID id;
+
+    private LocalDateTime createdAt;
 
     @NotBlank(message = "Title is required")
     private String title;
@@ -21,7 +24,8 @@ public class ResourceRequestDTO {
     @NotBlank(message = "Address is required")
     private String address;
 
-    @Min(1) @Max(5)
+    @Min(1)
+    @Max(5)
     private int severityLevel;
 
     @NotNull(message = "Category ID is required")

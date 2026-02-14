@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import Map, { Layer, Source, Marker } from 'react-map-gl/mapbox';
 import CrisisRequestForm from '../components/CrisisRequestForm';
 import RequestPreviewCard from '../components/RequestPreviewCard';
@@ -327,8 +328,8 @@ const Home: React.FC = () => {
                     transition: 'opacity 0.3s',
                 }}
             >
-                <a href="#" className="nav-link">Your Requests</a>
-                <a href="#" className="nav-link">Your Actions</a>
+                <Link to="/your-requests" className="nav-link">Your Requests</Link>
+                <Link to="/your-actions" className="nav-link">Your Actions</Link>
                 <a href="#" className="nav-link">Your Profile</a>
             </nav>
 

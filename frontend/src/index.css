@@ -943,3 +943,768 @@ code {
   border-right: 8px solid transparent;
   border-top: 8px solid rgba(16, 16, 20, 0.97);
 }
+
+
+/* ═══════════════════════════════════════════════════════════ */
+/* YOUR REQUESTS PAGE                                         */
+/* ═══════════════════════════════════════════════════════════ */
+
+.yr-page {
+  min-height: 100vh;
+  background: var(--bg-color);
+  padding: 2rem 1.5rem 4rem;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.yr-header {
+  margin-bottom: 2.5rem;
+}
+
+.yr-back {
+  font-family: var(--font-mono);
+  color: var(--accent-color);
+  text-decoration: none;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.yr-back:hover {
+  opacity: 1;
+}
+
+.yr-title {
+  font-family: var(--font-mono);
+  color: var(--accent-color);
+  font-size: 1.6rem;
+  margin: 0.5rem 0 0.25rem;
+  letter-spacing: 0.08em;
+}
+
+.yr-subtitle {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ── Section ── */
+.yr-section {
+  margin-bottom: 2.5rem;
+}
+
+.yr-section-heading {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.yr-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.yr-dot--active {
+  background: var(--accent-color);
+  box-shadow: 0 0 6px var(--accent-color);
+  animation: pulse-glow 2s infinite;
+}
+
+.yr-dot--past {
+  background: var(--muted-color);
+}
+
+.yr-count {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.yr-empty {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.85rem;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+.yr-loading,
+.yr-error {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  text-align: center;
+  padding: 4rem 1rem;
+  font-size: 1rem;
+}
+
+.yr-error {
+  color: #ff4444;
+}
+
+/* ── Request Card ── */
+.yr-card {
+  background: rgba(16, 16, 20, 0.85);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: pop-in 0.3s ease-out;
+}
+
+.yr-card:hover {
+  border-color: rgba(0, 255, 65, 0.3);
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.06);
+}
+
+.yr-card--past {
+  opacity: 0.7;
+}
+
+.yr-card--past:hover {
+  opacity: 0.85;
+}
+
+.yr-card__top {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+/* ── Status badge ── */
+.yr-status {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.yr-status--open {
+  background: rgba(0, 255, 65, 0.15);
+  color: var(--accent-color);
+  border: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.yr-status--claimed {
+  background: rgba(255, 200, 0, 0.15);
+  color: #ffc800;
+  border: 1px solid rgba(255, 200, 0, 0.3);
+}
+
+.yr-status--fulfilled {
+  background: rgba(100, 100, 100, 0.15);
+  color: #888;
+  border: 1px solid rgba(100, 100, 100, 0.3);
+}
+
+.yr-status--cancelled {
+  background: rgba(255, 60, 60, 0.12);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 60, 60, 0.25);
+}
+
+/* ── Severity badge ── */
+.yr-severity {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.yr-severity--low {
+  background: rgba(0, 200, 100, 0.12);
+  color: #00c864;
+}
+
+.yr-severity--medium {
+  background: rgba(255, 200, 0, 0.12);
+  color: #ffc800;
+}
+
+.yr-severity--high {
+  background: rgba(255, 120, 0, 0.12);
+  color: #ff7800;
+}
+
+.yr-severity--critical {
+  background: rgba(255, 50, 50, 0.15);
+  color: #ff3232;
+}
+
+/* ── Card content ── */
+.yr-card__title {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 1.05rem;
+  margin: 0 0 0.3rem;
+}
+
+.yr-card__address {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.8rem;
+  margin: 0 0 0.4rem;
+}
+
+.yr-card__desc {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 0.82rem;
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.yr-card__img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.yr-card__date {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.72rem;
+  margin: 0;
+}
+
+/* ── Action buttons ── */
+.yr-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(51, 51, 51, 0.5);
+}
+
+.yr-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.yr-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.yr-btn--edit {
+  color: var(--accent-color);
+  border-color: rgba(0, 255, 65, 0.3);
+}
+
+.yr-btn--edit:hover {
+  background: rgba(0, 255, 65, 0.1);
+}
+
+.yr-btn--complete {
+  color: #4cff91;
+  border-color: rgba(76, 255, 145, 0.3);
+}
+
+.yr-btn--complete:hover {
+  background: rgba(76, 255, 145, 0.1);
+}
+
+.yr-btn--cancel-req {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.yr-btn--cancel-req:hover {
+  background: rgba(255, 60, 60, 0.1);
+}
+
+.yr-btn--volunteers {
+  color: #88bbff;
+  border-color: rgba(136, 187, 255, 0.3);
+}
+
+.yr-btn--volunteers:hover,
+.yr-btn--volunteers.yr-btn--active {
+  background: rgba(136, 187, 255, 0.1);
+}
+
+/* ── Edit form ── */
+.yr-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0.5rem 0;
+}
+
+.yr-edit__label {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.yr-edit__input,
+.yr-edit__textarea {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-color);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.yr-edit__input:focus,
+.yr-edit__textarea:focus {
+  border-color: var(--accent-color);
+}
+
+.yr-edit__input--sm {
+  max-width: 80px;
+}
+
+.yr-edit__textarea {
+  resize: vertical;
+}
+
+.yr-edit__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.yr-btn--save {
+  background: rgba(0, 255, 65, 0.12);
+  color: var(--accent-color);
+  border-color: rgba(0, 255, 65, 0.4);
+  font-weight: 600;
+}
+
+.yr-btn--save:hover {
+  background: rgba(0, 255, 65, 0.2);
+}
+
+.yr-btn--cancel {
+  color: var(--muted-color);
+}
+
+/* ── Volunteer list ── */
+.yr-volunteers {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed rgba(51, 51, 51, 0.6);
+  animation: pop-in 0.2s ease-out;
+}
+
+.yr-volunteers__loading,
+.yr-volunteers__empty {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin: 0;
+}
+
+.yr-volunteer-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(51, 51, 51, 0.4);
+  border-radius: 6px;
+  animation: pop-in 0.25s ease-out;
+}
+
+.yr-volunteer-card__name {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.yr-volunteer-card__info {
+  display: flex;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.78rem;
+  flex: 1;
+}
+
+.yr-volunteer-card__info span {
+  white-space: nowrap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════ */
+/* YOUR ACTIONS PAGE                                          */
+/* ═══════════════════════════════════════════════════════════ */
+
+.ya-page {
+  min-height: 100vh;
+  background: var(--bg-color);
+  padding: 2rem 1.5rem 4rem;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.ya-header {
+  margin-bottom: 2.5rem;
+}
+
+.ya-back {
+  font-family: var(--font-mono);
+  color: var(--accent-color);
+  text-decoration: none;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.ya-back:hover {
+  opacity: 1;
+}
+
+.ya-title {
+  font-family: var(--font-mono);
+  color: var(--accent-color);
+  font-size: 1.6rem;
+  margin: 0.5rem 0 0.25rem;
+  letter-spacing: 0.08em;
+}
+
+.ya-subtitle {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ── Section ── */
+.ya-section {
+  margin-bottom: 2.5rem;
+}
+
+.ya-section-heading {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ya-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.ya-dot--active {
+  background: #88bbff;
+  box-shadow: 0 0 6px #88bbff;
+  animation: pulse-glow 2s infinite;
+}
+
+.ya-dot--past {
+  background: var(--muted-color);
+}
+
+.ya-count {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.ya-empty {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.85rem;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+.ya-loading,
+.ya-error {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  text-align: center;
+  padding: 4rem 1rem;
+  font-size: 1rem;
+}
+
+.ya-error {
+  color: #ff4444;
+}
+
+/* ── Action Card ── */
+.ya-card {
+  background: rgba(16, 16, 20, 0.85);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: pop-in 0.3s ease-out;
+}
+
+.ya-card:hover {
+  border-color: rgba(136, 187, 255, 0.3);
+  box-shadow: 0 0 12px rgba(136, 187, 255, 0.06);
+}
+
+.ya-card--past {
+  opacity: 0.7;
+}
+
+.ya-card--past:hover {
+  opacity: 0.85;
+}
+
+.ya-card__top {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.ya-card__time {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.72rem;
+  margin-left: auto;
+}
+
+/* ── Claim status badge ── */
+.ya-claim-status {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ya-status--active {
+  background: rgba(136, 187, 255, 0.15);
+  color: #88bbff;
+  border: 1px solid rgba(136, 187, 255, 0.3);
+}
+
+.ya-status--fulfilled {
+  background: rgba(100, 100, 100, 0.15);
+  color: #888;
+  border: 1px solid rgba(100, 100, 100, 0.3);
+}
+
+.ya-status--dropped {
+  background: rgba(255, 160, 60, 0.12);
+  color: #ffa03c;
+  border: 1px solid rgba(255, 160, 60, 0.25);
+}
+
+/* ── Severity (reuses yr- values) ── */
+.ya-severity {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.ya-severity--low {
+  background: rgba(0, 200, 100, 0.12);
+  color: #00c864;
+}
+
+.ya-severity--medium {
+  background: rgba(255, 200, 0, 0.12);
+  color: #ffc800;
+}
+
+.ya-severity--high {
+  background: rgba(255, 120, 0, 0.12);
+  color: #ff7800;
+}
+
+.ya-severity--critical {
+  background: rgba(255, 50, 50, 0.15);
+  color: #ff3232;
+}
+
+/* ── Card content ── */
+.ya-card__title {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 1.05rem;
+  margin: 0 0 0.3rem;
+}
+
+.ya-card__address {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.8rem;
+  margin: 0 0 0.4rem;
+}
+
+.ya-card__desc {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 0.82rem;
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.ya-card__img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.ya-card__date {
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.72rem;
+  margin: 0;
+}
+
+/* ── Action buttons ── */
+.ya-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(51, 51, 51, 0.5);
+}
+
+.ya-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.ya-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.ya-btn--drop {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.ya-btn--drop:hover {
+  background: rgba(255, 60, 60, 0.1);
+}
+
+.ya-btn--contact {
+  color: var(--accent-color);
+  border-color: rgba(0, 255, 65, 0.3);
+}
+
+.ya-btn--contact:hover,
+.ya-btn--contact.ya-btn--active {
+  background: rgba(0, 255, 65, 0.1);
+}
+
+.ya-btn--map {
+  color: #88bbff;
+  border-color: rgba(136, 187, 255, 0.3);
+}
+
+.ya-btn--map:hover {
+  background: rgba(136, 187, 255, 0.1);
+}
+
+/* ── Requester contact ── */
+.ya-contact {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed rgba(51, 51, 51, 0.6);
+  animation: pop-in 0.2s ease-out;
+}
+
+.ya-contact__card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(51, 51, 51, 0.4);
+  border-radius: 6px;
+}
+
+.ya-contact__name {
+  font-family: var(--font-mono);
+  color: var(--text-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.ya-contact__info {
+  display: flex;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  color: var(--muted-color);
+  font-size: 0.78rem;
+  flex: 1;
+}
+
+.ya-contact__info span {
+  white-space: nowrap;
+}

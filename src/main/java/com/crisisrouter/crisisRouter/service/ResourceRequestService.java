@@ -21,4 +21,7 @@ public interface ResourceRequestService {
 
     // Fetches all requests created by the currently authenticated user
     List<ResourceRequestDTO> getMyRequests();
+
+    // Edits request fields (only if OPEN)
+    ResourceRequestDTO updateRequest(UUID id, ResourceRequestDTO dto);
 }
