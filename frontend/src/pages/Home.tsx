@@ -121,6 +121,25 @@ const Home: React.FC = () => {
         fetchMyRequests();
     }, [categories]);
 
+    // Fetch user profile for spawn location
+    useEffect(() => {
+        fetch('/api/users/me', { credentials: 'include' })
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error('Not logged in');
+            })
+            .then(user => {
+                if (user.latitude && user.longitude && mapRef.current) {
+                    mapRef.current.flyTo({
+                        center: [user.longitude, user.latitude],
+                        zoom: 15.5,
+                        duration: 2000
+                    });
+                }
+            })
+            .catch(() => { /* Ignore if not logged in or no location */ });
+    }, []);
+
     // Debounced geocoding
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -330,7 +349,7 @@ const Home: React.FC = () => {
             >
                 <Link to="/your-requests" className="nav-link">Your Requests</Link>
                 <Link to="/your-actions" className="nav-link">Your Actions</Link>
-                <a href="#" className="nav-link">Your Profile</a>
+                <Link to="/your-profile" className="nav-link">Your Profile</Link>
             </nav>
 
             {/* Full-screen map */}

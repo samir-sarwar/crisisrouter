@@ -41,6 +41,18 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
+    @Column(nullable = true)
+    private String profilePictureUrl;
+
+    @Column(length = 1000)
+    private String description;
+
+    private String address;
+
+    private Double latitude;
+
+    private Double longitude;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
