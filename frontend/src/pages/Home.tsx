@@ -36,6 +36,26 @@ const severityMap: Record<string, number> = {
     critical: 4,
 };
 
+const getSessionViewport = () => {
+    try {
+        const raw = sessionStorage.getItem('crisisRouter.mapViewport');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
+const getDemoRequests = (): ActiveRequest[] => {
+    try {
+        const raw = sessionStorage.getItem('crisisRouter.demoRequests');
+        return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+};
+
+const saveDemoRequests = (requests: ActiveRequest[]) => {
+    sessionStorage.setItem('crisisRouter.demoRequests', JSON.stringify(requests));
+};
+
 const INITIAL_FORM: FormData = {
     title: '',
     address: '',
@@ -48,6 +68,9 @@ const INITIAL_FORM: FormData = {
 const Home: React.FC = () => {
     const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
     const mapRef = useRef<any>(null);
+    const sessionViewport = getSessionViewport();
+    const mapLoaded = useRef(false);
+    const pendingUserFly = useRef<[number, number] | null>(null);
 
     // UI state
     const [isCreatingRequest, setIsCreatingRequest] = useState(false);
@@ -89,37 +112,80 @@ const Home: React.FC = () => {
             .catch(err => console.error('Categories fetch error:', err));
     }, []);
 
-    // Fetch the current user's saved requests on mount
+    // Fetch the current user's saved requests on mount (original working pattern)
     useEffect(() => {
         const fetchMyRequests = async () => {
             try {
                 const res = await fetch('/api/requests/me', {
                     credentials: 'include',
                 });
-                if (!res.ok) return; // silently skip if not authenticated yet
+                if (!res.ok) return;
                 const data = await res.json();
 
-                // Wait for categories to resolve type names
                 let cats = categories;
                 if (cats.length === 0) {
                     const catRes = await fetch('/api/categories');
                     if (catRes.ok) cats = await catRes.json();
                 }
 
-                setActiveRequests(data.map((r: any) => {
+                const mapped = data.map((r: any) => {
                     const matchedCat = cats.find((c: Category) => c.id === r.categoryId);
                     return {
                         ...r,
                         type: r.customCategory || matchedCat?.name || 'General',
                         imageUrl: r.imageUrl || null,
                     };
-                }));
+                });
+
+                // Include persisted demo requests from sessionStorage
+                const demoRequests = getDemoRequests();
+                setActiveRequests([...demoRequests, ...mapped]);
             } catch (err) {
                 console.error('Failed to fetch saved requests:', err);
             }
         };
         fetchMyRequests();
     }, [categories]);
+
+    // Fetch nearby requests (from other users) once we have coordinates
+    useEffect(() => {
+        if (!currentUser?.latitude || !currentUser?.longitude) return;
+
+        const fetchNearby = async () => {
+            try {
+                const res = await fetch(
+                    `/api/requests/nearby?latitude=${currentUser.latitude}&longitude=${currentUser.longitude}&radiusInMeters=10000`,
+                    { credentials: 'include' }
+                );
+                if (!res.ok) return;
+                const nearbyData = await res.json();
+
+                let cats = categories;
+                if (cats.length === 0) {
+                    const catRes = await fetch('/api/categories');
+                    if (catRes.ok) cats = await catRes.json();
+                }
+
+                setActiveRequests(prev => {
+                    const existingIds = new Set(prev.map(r => r.id));
+                    const newNearby = nearbyData
+                        .filter((r: any) => !existingIds.has(r.id))
+                        .map((r: any) => {
+                            const matchedCat = cats.find((c: Category) => c.id === r.categoryId);
+                            return {
+                                ...r,
+                                type: r.customCategory || matchedCat?.name || 'General',
+                                imageUrl: r.imageUrl || null,
+                            };
+                        });
+                    return [...prev, ...newNearby];
+                });
+            } catch (err) {
+                console.error('Failed to fetch nearby requests:', err);
+            }
+        };
+        fetchNearby();
+    }, [currentUser, categories]);
 
     // Fetch user profile for spawn location + store for notifications
     useEffect(() => {
@@ -136,18 +202,25 @@ const Home: React.FC = () => {
                     latitude: user.latitude,
                     longitude: user.longitude,
                 });
-                if (user.latitude && user.longitude && mapRef.current) {
-                    mapRef.current.flyTo({
-                        center: [user.longitude, user.latitude],
-                        zoom: 15.5,
-                        duration: 2000
-                    });
+                // Only fly to saved location on true first visit (no sessionStorage viewport).
+                // On subsequent visits or refreshes, sessionStorage restores position instantly.
+                if (user.latitude && user.longitude && !sessionViewport) {
+                    if (mapLoaded.current && mapRef.current) {
+                        mapRef.current.flyTo({
+                            center: [user.longitude, user.latitude],
+                            zoom: 15.5,
+                            duration: 2000,
+                        });
+                    } else {
+                        // Map not ready yet — queue for onLoad
+                        pendingUserFly.current = [user.longitude, user.latitude];
+                    }
                 }
             })
             .catch(() => { /* Ignore if not logged in or no location */ });
     }, []);
 
-    // ── DEMO: Generate a fake nearby request every 60 seconds ──
+    // ── DEMO: Generate a fake nearby request every 3 minutes ──
     useEffect(() => {
         if (!currentUser?.latitude || !currentUser?.longitude) return;
 
@@ -159,8 +232,12 @@ const Home: React.FC = () => {
                     mapboxToken
                 );
 
-                // Add to active requests so it shows as a marker
-                setActiveRequests(prev => [...prev, fakeRequest]);
+                // Add to active requests and persist demo requests to sessionStorage
+                setActiveRequests(prev => {
+                    const updated = [...prev, fakeRequest];
+                    saveDemoRequests(updated.filter(r => r.id.toString().startsWith('demo-')));
+                    return updated;
+                });
 
                 // Add notification
                 setNotifications(prev => [{
@@ -176,7 +253,7 @@ const Home: React.FC = () => {
             } catch (err) {
                 console.error('Failed to generate demo request:', err);
             }
-        }, 60_000);
+        }, 180_000);
 
         return () => clearInterval(interval);
     }, [currentUser, mapboxToken]);
@@ -271,9 +348,37 @@ const Home: React.FC = () => {
     const handleVolunteer = async (requestId: string) => {
         // Demo fake requests have IDs starting with "demo-"
         if (requestId.startsWith('demo-')) {
-            setActiveRequests(prev =>
-                prev.map(r => r.id === requestId ? { ...r, status: 'CLAIMED' } : r)
-            );
+            setActiveRequests(prev => {
+                const updated = prev.map(r => r.id === requestId ? { ...r, status: 'CLAIMED' } : r);
+                saveDemoRequests(updated.filter(r => r.id.toString().startsWith('demo-')));
+                return updated;
+            });
+
+            // Build a demo claim so it appears in YourActions
+            const req = activeRequests.find(r => r.id === requestId);
+            if (req) {
+                const demoClaim = {
+                    id: `demo-claim-${crypto.randomUUID()}`,
+                    resourceRequestId: req.id,
+                    volunteerId: currentUser?.id ?? 'demo-user',
+                    claimedAt: new Date().toISOString(),
+                    status: 'ACTIVE',
+                    requestTitle: req.title,
+                    requestDescription: req.description,
+                    requestAddress: req.address,
+                    requestSeverityLevel: req.severityLevel,
+                    requestImageUrl: req.imageUrl,
+                    requestStatus: 'CLAIMED',
+                    requestLatitude: req.latitude,
+                    requestLongitude: req.longitude,
+                    requesterFirstName: req.creatorFirstName,
+                    requesterLastName: req.creatorLastName,
+                    requesterEmail: `${req.creatorFirstName.toLowerCase()}@example.com`,
+                    requesterPhone: null,
+                };
+                const existing = JSON.parse(sessionStorage.getItem('crisisRouter.demoClaims') || '[]');
+                sessionStorage.setItem('crisisRouter.demoClaims', JSON.stringify([demoClaim, ...existing]));
+            }
             return;
         }
 
@@ -293,6 +398,27 @@ const Home: React.FC = () => {
             console.error('Volunteer error:', err);
         }
     };
+
+    // ── Map lifecycle handlers ─────────────────────────────────
+    const handleMapLoad = useCallback(() => {
+        mapLoaded.current = true;
+        if (pendingUserFly.current) {
+            mapRef.current?.flyTo({ center: pendingUserFly.current, zoom: 15.5, duration: 2000 });
+            pendingUserFly.current = null;
+        }
+    }, []);
+
+    const handleMoveEnd = useCallback(() => {
+        if (!mapRef.current) return;
+        const center = mapRef.current.getCenter();
+        sessionStorage.setItem('crisisRouter.mapViewport', JSON.stringify({
+            longitude: center.lng,
+            latitude: center.lat,
+            zoom: mapRef.current.getZoom(),
+            pitch: mapRef.current.getPitch(),
+            bearing: mapRef.current.getBearing(),
+        }));
+    }, []);
 
     // Debounced geocoding
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -513,13 +639,25 @@ const Home: React.FC = () => {
             {/* Full-screen map */}
             <Map
                 ref={mapRef}
-                initialViewState={{
-                    longitude: -79.3832,
-                    latitude: 43.6532,
-                    zoom: 15.5,
-                    pitch: 60,
-                    bearing: -17.6,
-                }}
+                initialViewState={
+                    sessionViewport
+                        ? {
+                              longitude: sessionViewport.longitude,
+                              latitude: sessionViewport.latitude,
+                              zoom: sessionViewport.zoom,
+                              pitch: sessionViewport.pitch,
+                              bearing: sessionViewport.bearing,
+                          }
+                        : {
+                              longitude: -79.3832,
+                              latitude: 43.6532,
+                              zoom: 15.5,
+                              pitch: 60,
+                              bearing: -17.6,
+                          }
+                }
+                onLoad={handleMapLoad}
+                onMoveEnd={handleMoveEnd}
                 style={{ width: '100%', height: '100%' }}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
                 mapboxAccessToken={mapboxToken}

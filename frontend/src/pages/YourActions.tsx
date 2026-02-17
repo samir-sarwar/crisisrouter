@@ -72,7 +72,12 @@ export default function YourActions() {
             const res = await fetch('/api/claims/me', { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to fetch claims');
             const data: ClaimItem[] = await res.json();
-            setClaims(data);
+
+            // Merge demo claims from sessionStorage
+            const demoClaims: ClaimItem[] = JSON.parse(
+                sessionStorage.getItem('crisisRouter.demoClaims') || '[]'
+            );
+            setClaims([...demoClaims, ...data]);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -89,6 +94,22 @@ export default function YourActions() {
     /* ── Drop claim ── */
     const handleDrop = async (claimId: string) => {
         if (!confirm('Are you sure you want to drop this volunteer commitment?')) return;
+
+        // Handle demo claims via sessionStorage
+        if (claimId.startsWith('demo-claim-')) {
+            const demoClaims: ClaimItem[] = JSON.parse(
+                sessionStorage.getItem('crisisRouter.demoClaims') || '[]'
+            );
+            const updated = demoClaims.map(c =>
+                c.id === claimId ? { ...c, status: 'DROPPED', requestStatus: 'OPEN' } : c
+            );
+            sessionStorage.setItem('crisisRouter.demoClaims', JSON.stringify(updated));
+            setClaims(prev => prev.map(c =>
+                c.id === claimId ? { ...c, status: 'DROPPED', requestStatus: 'OPEN' } : c
+            ));
+            return;
+        }
+
         try {
             const res = await fetch(`/api/claims/${claimId}/drop`, {
                 method: 'PATCH',
