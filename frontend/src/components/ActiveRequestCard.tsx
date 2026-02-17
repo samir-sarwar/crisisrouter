@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface ActiveRequestCardProps {
     title: string;
@@ -9,6 +9,7 @@ interface ActiveRequestCardProps {
     imageUrl: string | null;
     creatorName: string;
     isOwnRequest: boolean;
+    isVolunteering: boolean;
     onVolunteer?: () => void;
 }
 
@@ -39,8 +40,10 @@ const ActiveRequestCard: React.FC<ActiveRequestCardProps> = ({
     imageUrl,
     creatorName,
     isOwnRequest,
+    isVolunteering,
     onVolunteer,
 }) => {
+    const [isConfirming, setIsConfirming] = useState(false);
     const sevColor = severityColors[severity] || '#888';
     const sevLabel = severityLabels[severity] || severity?.toUpperCase() || 'UNKNOWN';
 
@@ -111,15 +114,48 @@ const ActiveRequestCard: React.FC<ActiveRequestCardProps> = ({
 
                 {/* Volunteer button — only on other users' requests */}
                 {!isOwnRequest && (
-                    <button
-                        className="active-card__volunteer-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onVolunteer?.();
-                        }}
-                    >
-                        ✦ Volunteer
-                    </button>
+                    isVolunteering ? (
+                        <button className="active-card__volunteer-btn active-card__volunteer-btn--active">
+                            ✔ Currently Volunteering
+                        </button>
+                    ) : (
+                        !isConfirming ? (
+                            <button
+                                className="active-card__volunteer-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsConfirming(true);
+                                }}
+                            >
+                                ✦ Volunteer
+                            </button>
+                        ) : (
+                            <div className="active-card__confirm-box" onClick={(e) => e.stopPropagation()}>
+                                <span className="active-card__confirm-text">Are you sure?</span>
+                                <div className="active-card__confirm-btns">
+                                    <button
+                                        className="active-card__confirm-btn active-card__confirm-btn--yes"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onVolunteer?.();
+                                            setIsConfirming(false);
+                                        }}
+                                    >
+                                        YES
+                                    </button>
+                                    <button
+                                        className="active-card__confirm-btn active-card__confirm-btn--no"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsConfirming(false);
+                                        }}
+                                    >
+                                        NO
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    )
                 )}
             </div>
 

@@ -642,19 +642,19 @@ const Home: React.FC = () => {
                 initialViewState={
                     sessionViewport
                         ? {
-                              longitude: sessionViewport.longitude,
-                              latitude: sessionViewport.latitude,
-                              zoom: sessionViewport.zoom,
-                              pitch: sessionViewport.pitch,
-                              bearing: sessionViewport.bearing,
-                          }
+                            longitude: sessionViewport.longitude,
+                            latitude: sessionViewport.latitude,
+                            zoom: sessionViewport.zoom,
+                            pitch: sessionViewport.pitch,
+                            bearing: sessionViewport.bearing,
+                        }
                         : {
-                              longitude: -79.3832,
-                              latitude: 43.6532,
-                              zoom: 15.5,
-                              pitch: 60,
-                              bearing: -17.6,
-                          }
+                            longitude: -79.3832,
+                            latitude: 43.6532,
+                            zoom: 15.5,
+                            pitch: 60,
+                            bearing: -17.6,
+                        }
                 }
                 onLoad={handleMapLoad}
                 onMoveEnd={handleMoveEnd}
@@ -701,7 +701,7 @@ const Home: React.FC = () => {
                     const isOwn = !req.id.toString().startsWith('demo-') && (
                         currentUser
                             ? req.creatorFirstName === currentUser.firstName
-                              && req.creatorLastName === currentUser.lastName
+                            && req.creatorLastName === currentUser.lastName
                             : true
                     );
 
@@ -721,6 +721,7 @@ const Home: React.FC = () => {
                                 imageUrl={req.imageUrl}
                                 creatorName={`${req.creatorFirstName} ${req.creatorLastName}`}
                                 isOwnRequest={isOwn}
+                                isVolunteering={req.status === 'CLAIMED'}
                                 onVolunteer={() => handleVolunteer(req.id)}
                             />
                         </Marker>
