@@ -4,7 +4,15 @@ import Map, { Layer, Source, Marker } from 'react-map-gl/mapbox';
 import CrisisRequestForm from '../components/CrisisRequestForm';
 import RequestPreviewCard from '../components/RequestPreviewCard';
 import ActiveRequestCard from '../components/ActiveRequestCard';
+import NotificationBell from '../components/NotificationBell';
+import type { NearbyNotification } from '../components/NotificationBell';
+import { generateFakeRequest } from '../utils/demoRequestGenerator';
+import type { ActiveRequest } from '../utils/demoRequestGenerator';
 import 'mapbox-gl/dist/mapbox-gl.css';
+
+// WebSocket imports (uncomment for production):
+// import SockJS from 'sockjs-client';
+// import { Client } from '@stomp/stompjs';
 
 interface FormData {
     title: string;
@@ -19,23 +27,6 @@ interface Category {
     id: string;
     name: string;
     description: string;
-}
-
-// Represents a saved crisis request displayed on the map
-interface ActiveRequest {
-    id: string;
-    title: string;
-    description: string;
-    address: string;
-    severityLevel: number;
-    latitude: number;
-    longitude: number;
-    imageUrl: string | null;
-    status: string;
-    creatorFirstName: string;
-    creatorLastName: string;
-    type: string;           // category display name
-    customCategory?: string;
 }
 
 const severityMap: Record<string, number> = {
@@ -72,11 +63,20 @@ const Home: React.FC = () => {
     // Geocoded location for preview card
     const [previewLocation, setPreviewLocation] = useState<{ lng: number; lat: number } | null>(null);
 
-    // ── DEMO: Active requests stored in local state ──────────────────
-    // In this demo version, submitted requests are added directly to
-    // local state so the user sees their own requests immediately on
-    // the map. Only requests from this session are shown.
+    // ── Active requests stored in local state ──────────────────
     const [activeRequests, setActiveRequests] = useState<ActiveRequest[]>([]);
+
+    // Current user profile (for location, ownership checks, volunteer ID)
+    const [currentUser, setCurrentUser] = useState<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        latitude: number;
+        longitude: number;
+    } | null>(null);
+
+    // Nearby request notifications
+    const [notifications, setNotifications] = useState<NearbyNotification[]>([]);
 
     // Fetch Categories on Mount
     useEffect(() => {
@@ -121,7 +121,7 @@ const Home: React.FC = () => {
         fetchMyRequests();
     }, [categories]);
 
-    // Fetch user profile for spawn location
+    // Fetch user profile for spawn location + store for notifications
     useEffect(() => {
         fetch('/api/users/me', { credentials: 'include' })
             .then(res => {
@@ -129,6 +129,13 @@ const Home: React.FC = () => {
                 throw new Error('Not logged in');
             })
             .then(user => {
+                setCurrentUser({
+                    id: user.id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    latitude: user.latitude,
+                    longitude: user.longitude,
+                });
                 if (user.latitude && user.longitude && mapRef.current) {
                     mapRef.current.flyTo({
                         center: [user.longitude, user.latitude],
@@ -139,6 +146,153 @@ const Home: React.FC = () => {
             })
             .catch(() => { /* Ignore if not logged in or no location */ });
     }, []);
+
+    // ── DEMO: Generate a fake nearby request every 60 seconds ──
+    useEffect(() => {
+        if (!currentUser?.latitude || !currentUser?.longitude) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const fakeRequest = await generateFakeRequest(
+                    currentUser.latitude,
+                    currentUser.longitude,
+                    mapboxToken
+                );
+
+                // Add to active requests so it shows as a marker
+                setActiveRequests(prev => [...prev, fakeRequest]);
+
+                // Add notification
+                setNotifications(prev => [{
+                    id: fakeRequest.id,
+                    title: fakeRequest.title,
+                    address: fakeRequest.address,
+                    severityLevel: fakeRequest.severityLevel,
+                    latitude: fakeRequest.latitude,
+                    longitude: fakeRequest.longitude,
+                    timestamp: new Date(),
+                    read: false,
+                }, ...prev]);
+            } catch (err) {
+                console.error('Failed to generate demo request:', err);
+            }
+        }, 60_000);
+
+        return () => clearInterval(interval);
+    }, [currentUser, mapboxToken]);
+
+    /*
+     * ═══════════════════════════════════════════════════════════
+     * REAL WEBSOCKET IMPLEMENTATION
+     * Uncomment this block and comment out the demo interval
+     * above to receive real-time requests from other users.
+     * ═══════════════════════════════════════════════════════════
+     */
+    // useEffect(() => {
+    //     if (!currentUser?.latitude || !currentUser?.longitude) return;
+    //
+    //     const client = new Client({
+    //         webSocketFactory: () => new SockJS('/ws'),
+    //         reconnectDelay: 5000,
+    //         onConnect: () => {
+    //             console.log('WebSocket connected');
+    //             client.subscribe('/topic/requests', (message) => {
+    //                 const newReq = JSON.parse(message.body);
+    //
+    //                 // Calculate distance from user to the new request (Haversine)
+    //                 const R = 6371000; // Earth radius in meters
+    //                 const dLat = (newReq.latitude - currentUser.latitude) * Math.PI / 180;
+    //                 const dLon = (newReq.longitude - currentUser.longitude) * Math.PI / 180;
+    //                 const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    //                     Math.cos(currentUser.latitude * Math.PI / 180) *
+    //                     Math.cos(newReq.latitude * Math.PI / 180) *
+    //                     Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    //                 const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    //
+    //                 // Only notify if within 3km and not the user's own request
+    //                 if (distance <= 3000) {
+    //                     const isOwn = newReq.creatorFirstName === currentUser.firstName
+    //                         && newReq.creatorLastName === currentUser.lastName;
+    //                     if (isOwn) return;
+    //
+    //                     const activeReq: ActiveRequest = {
+    //                         ...newReq,
+    //                         type: newReq.customCategory || 'General',
+    //                         imageUrl: newReq.imageUrl || null,
+    //                     };
+    //
+    //                     setActiveRequests(prev => {
+    //                         if (prev.find(r => r.id === activeReq.id)) return prev;
+    //                         return [...prev, activeReq];
+    //                     });
+    //
+    //                     setNotifications(prev => [{
+    //                         id: newReq.id,
+    //                         title: newReq.title,
+    //                         address: newReq.address,
+    //                         severityLevel: newReq.severityLevel,
+    //                         latitude: newReq.latitude,
+    //                         longitude: newReq.longitude,
+    //                         timestamp: new Date(),
+    //                         read: false,
+    //                     }, ...prev]);
+    //                 }
+    //             });
+    //         },
+    //         onDisconnect: () => console.log('WebSocket disconnected'),
+    //         onStompError: (frame) => console.error('STOMP error:', frame),
+    //     });
+    //     client.activate();
+    //     return () => { client.deactivate(); };
+    // }, [currentUser]);
+
+    // ── Notification handlers ──────────────────────────────────
+    const handleNotificationClick = (notification: NearbyNotification) => {
+        setNotifications(prev =>
+            prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+        );
+        mapRef.current?.flyTo({
+            center: [notification.longitude, notification.latitude],
+            zoom: 16,
+            pitch: 55,
+            duration: 2000,
+        });
+    };
+
+    const handleMarkAllRead = () => {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    };
+
+    const handleDismissNotification = (id: string) => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    };
+
+    // ── Volunteer handler ──────────────────────────────────────
+    const handleVolunteer = async (requestId: string) => {
+        // Demo fake requests have IDs starting with "demo-"
+        if (requestId.startsWith('demo-')) {
+            setActiveRequests(prev =>
+                prev.map(r => r.id === requestId ? { ...r, status: 'CLAIMED' } : r)
+            );
+            return;
+        }
+
+        // Real request — call the Claim API
+        if (!currentUser?.id) return;
+        try {
+            const res = await fetch(
+                `/api/claims/request/${requestId}?volunteerId=${currentUser.id}`,
+                { method: 'POST', credentials: 'include' }
+            );
+            if (res.ok) {
+                setActiveRequests(prev =>
+                    prev.map(r => r.id === requestId ? { ...r, status: 'CLAIMED' } : r)
+                );
+            }
+        } catch (err) {
+            console.error('Volunteer error:', err);
+        }
+    };
 
     // Debounced geocoding
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -291,10 +445,7 @@ const Home: React.FC = () => {
             const result = await response.json();
             console.log('Request created:', result);
 
-            // ── DEMO: Add the new request to local state ─────────
-            // The backend returns the full DTO with id, lat/lng, etc.
-            // We push it into activeRequests so a marker appears on
-            // the map immediately.
+            // Add the new request to local state so a marker appears immediately
             const newActiveRequest: ActiveRequest = {
                 id: result.id,
                 title: result.title,
@@ -350,6 +501,13 @@ const Home: React.FC = () => {
                 <Link to="/your-requests" className="nav-link">Your Requests</Link>
                 <Link to="/your-actions" className="nav-link">Your Actions</Link>
                 <Link to="/your-profile" className="nav-link">Your Profile</Link>
+
+                <NotificationBell
+                    notifications={notifications}
+                    onNotificationClick={handleNotificationClick}
+                    onDismiss={handleDismissNotification}
+                    onMarkAllRead={handleMarkAllRead}
+                />
             </nav>
 
             {/* Full-screen map */}
@@ -400,138 +558,36 @@ const Home: React.FC = () => {
                     </Marker>
                 )}
 
-                {/* ── DEMO: Render saved requests as map markers ── */}
-                {activeRequests.map(req => (
-                    <Marker
-                        key={req.id}
-                        longitude={req.longitude}
-                        latitude={req.latitude}
-                        anchor="bottom"
-                    >
-                        <ActiveRequestCard
-                            title={req.title}
-                            address={req.address}
-                            type={req.type}
-                            severity={String(req.severityLevel)}
-                            description={req.description}
-                            imageUrl={req.imageUrl}
-                            creatorName={`${req.creatorFirstName} ${req.creatorLastName}`}
-                            isOwnRequest={true} /* Demo: all requests are the user's own */
-                        />
-                    </Marker>
-                ))}
+                {/* Render active requests as map markers */}
+                {activeRequests.map(req => {
+                    const isOwn = !req.id.toString().startsWith('demo-') && (
+                        currentUser
+                            ? req.creatorFirstName === currentUser.firstName
+                              && req.creatorLastName === currentUser.lastName
+                            : true
+                    );
 
-                {/*
-                 * ══════════════════════════════════════════════════════
-                 * REAL IMPLEMENTATION (multi-user with API + WebSocket)
-                 * ══════════════════════════════════════════════════════
-                 *
-                 * The code below is the production-ready version that:
-                 *  1. Fetches ALL of the current user's requests from
-                 *     the backend on mount via GET /api/requests/me
-                 *  2. Subscribes to WebSocket topic /topic/requests so
-                 *     new requests from ANY user appear in real-time
-                 *  3. Compares creatorFirstName/LastName (or a userId
-                 *     field if added later) to decide isOwnRequest
-                 *  4. Shows a green "Volunteer" button on other users'
-                 *     requests
-                 *
-                 * To enable: remove these comment blocks and delete or
-                 * comment out the DEMO activeRequests state + submit
-                 * handler additions above.
-                 *
-                 * ── Step 1: Fetch user's saved requests on mount ──
-                 *
-                 * useEffect(() => {
-                 *     const fetchMyRequests = async () => {
-                 *         try {
-                 *             const res = await fetch('/api/requests/me', {
-                 *                 credentials: 'include',
-                 *             });
-                 *             if (!res.ok) return;
-                 *             const data = await res.json();
-                 *             setActiveRequests(data.map((r: any) => ({
-                 *                 ...r,
-                 *                 type: r.customCategory || 'General',
-                 *                 imageUrl: r.imageUrl || null,
-                 *             })));
-                 *         } catch (err) {
-                 *             console.error('Failed to fetch requests:', err);
-                 *         }
-                 *     };
-                 *     fetchMyRequests();
-                 * }, []);
-                 *
-                 * ── Step 2: WebSocket subscription for live updates ──
-                 *
-                 * import SockJS from 'sockjs-client';
-                 * import { Client } from '@stomp/stompjs';
-                 *
-                 * useEffect(() => {
-                 *     const client = new Client({
-                 *         webSocketFactory: () => new SockJS('/ws'),
-                 *         onConnect: () => {
-                 *             client.subscribe('/topic/requests', (message) => {
-                 *                 const newReq = JSON.parse(message.body);
-                 *                 setActiveRequests(prev => {
-                 *                     // Avoid duplicates
-                 *                     if (prev.find(r => r.id === newReq.id)) return prev;
-                 *                     return [...prev, {
-                 *                         ...newReq,
-                 *                         type: newReq.customCategory || 'General',
-                 *                         imageUrl: newReq.imageUrl || null,
-                 *                     }];
-                 *                 });
-                 *             });
-                 *         },
-                 *     });
-                 *     client.activate();
-                 *     return () => { client.deactivate(); };
-                 * }, []);
-                 *
-                 * ── Step 3: Determine ownership ──
-                 * Fetch the current user's info once and compare:
-                 *
-                 * const [currentUser, setCurrentUser] = useState<{firstName: string; lastName: string} | null>(null);
-                 *
-                 * useEffect(() => {
-                 *     fetch('/api/users/me', { credentials: 'include' })
-                 *         .then(res => res.json())
-                 *         .then(u => setCurrentUser({ firstName: u.firstName, lastName: u.lastName }))
-                 *         .catch(() => {});
-                 * }, []);
-                 *
-                 * // Then in the Marker render:
-                 * const isOwn = currentUser
-                 *     && req.creatorFirstName === currentUser.firstName
-                 *     && req.creatorLastName === currentUser.lastName;
-                 *
-                 * <ActiveRequestCard
-                 *     ...
-                 *     isOwnRequest={isOwn}
-                 *     onVolunteer={() => handleVolunteer(req.id)}
-                 * />
-                 *
-                 * ── Step 4: Volunteer handler ──
-                 *
-                 * const handleVolunteer = async (requestId: string) => {
-                 *     try {
-                 *         const res = await fetch(`/api/requests/${requestId}/status?status=CLAIMED`, {
-                 *             method: 'PATCH',
-                 *             credentials: 'include',
-                 *         });
-                 *         if (res.ok) {
-                 *             setActiveRequests(prev =>
-                 *                 prev.map(r => r.id === requestId ? { ...r, status: 'CLAIMED' } : r)
-                 *             );
-                 *         }
-                 *     } catch (err) {
-                 *         console.error('Volunteer error:', err);
-                 *     }
-                 * };
-                 *
-                 * ══════════════════════════════════════════════════════
-                 */}
+                    return (
+                        <Marker
+                            key={req.id}
+                            longitude={req.longitude}
+                            latitude={req.latitude}
+                            anchor="bottom"
+                        >
+                            <ActiveRequestCard
+                                title={req.title}
+                                address={req.address}
+                                type={req.type}
+                                severity={String(req.severityLevel)}
+                                description={req.description}
+                                imageUrl={req.imageUrl}
+                                creatorName={`${req.creatorFirstName} ${req.creatorLastName}`}
+                                isOwnRequest={isOwn}
+                                onVolunteer={() => handleVolunteer(req.id)}
+                            />
+                        </Marker>
+                    );
+                })}
             </Map>
 
             {/* Right-side form panel */}
