@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface SpotlightProps {
     targetSelector: string | null;
@@ -19,6 +18,7 @@ const BORDER_RADIUS = 8;
 
 export default function OnboardingSpotlight({ targetSelector, isVisible, overlayOpacity = 0.75 }: SpotlightProps) {
     const [rect, setRect] = useState<TargetRect | null>(null);
+    const [show, setShow] = useState(false);
 
     const updateRect = useCallback(() => {
         if (!targetSelector) {
@@ -34,6 +34,7 @@ export default function OnboardingSpotlight({ targetSelector, isVisible, overlay
 
     useEffect(() => {
         if (!isVisible || !targetSelector) {
+            setShow(false);
             setRect(null);
             return;
         }
@@ -45,6 +46,7 @@ export default function OnboardingSpotlight({ targetSelector, isVisible, overlay
             if (el) {
                 const r = el.getBoundingClientRect();
                 setRect({ x: r.x, y: r.y, width: r.width, height: r.height });
+                setShow(true);
                 clearInterval(pollInterval);
             } else if (++attempts >= maxAttempts) {
                 clearInterval(pollInterval);
@@ -64,32 +66,26 @@ export default function OnboardingSpotlight({ targetSelector, isVisible, overlay
     // No spotlight for center/modal steps
     if (!targetSelector) return null;
 
+    const visible = isVisible && rect && show;
+
     return (
-        <AnimatePresence>
-            {isVisible && rect && (
-                <motion.div
-                    className="onboarding-spotlight__glow"
-                    initial={{ opacity: 0 }}
-                    animate={{
-                        opacity: 1,
-                        left: rect.x - PADDING,
-                        top: rect.y - PADDING,
-                        width: rect.width + PADDING * 2,
-                        height: rect.height + PADDING * 2,
-                    }}
-                    exit={{ opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    style={{
-                        position: 'fixed',
-                        borderRadius: BORDER_RADIUS,
-                        border: '2px solid #00ff41',
-                        boxShadow:
-                            `0 0 0 9999px rgba(0, 0, 0, ${overlayOpacity}), 0 0 15px rgba(0, 255, 65, 0.4), inset 0 0 15px rgba(0, 255, 65, 0.1)`,
-                        zIndex: 9998,
-                        pointerEvents: 'none',
-                    }}
-                />
-            )}
-        </AnimatePresence>
+        <div
+            className="onboarding-spotlight__glow"
+            style={{
+                position: 'fixed',
+                borderRadius: BORDER_RADIUS,
+                border: '2px solid #00ff41',
+                boxShadow:
+                    `0 0 0 9999px rgba(0, 0, 0, ${overlayOpacity}), 0 0 15px rgba(0, 255, 65, 0.4), inset 0 0 15px rgba(0, 255, 65, 0.1)`,
+                zIndex: 9998,
+                pointerEvents: 'none',
+                opacity: visible ? 1 : 0,
+                left: rect ? rect.x - PADDING : 0,
+                top: rect ? rect.y - PADDING : 0,
+                width: rect ? rect.width + PADDING * 2 : 0,
+                height: rect ? rect.height + PADDING * 2 : 0,
+                transition: 'opacity 0.25s ease, left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease',
+            }}
+        />
     );
 }

@@ -144,6 +144,8 @@ export default function YourProfile() {
             const updated = await res.json();
             setProfile(updated);
             setMessage({ text: 'Profile updated successfully!', type: 'success' });
+            // Clear stale viewport so Home.tsx flies to the new address on "Back to Map"
+            sessionStorage.removeItem('crisisRouter.mapViewport');
             // Cleanup object URL
             if (imageFile && previewUrl && !updated.profilePictureUrl) {
                 // If backend didn't return url but we have local preview

@@ -211,6 +211,7 @@ const CrisisRequestForm: React.FC<CrisisRequestFormProps> = ({
                         onChange={handleChange}
                         rows={4}
                         placeholder="Provide details about the situation..."
+                        required
                         className="field-input field-textarea"
                     />
                 </div>

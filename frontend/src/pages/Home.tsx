@@ -502,6 +502,20 @@ const Home: React.FC = () => {
         setIsSubmitting(true);
 
         try {
+            // 0. Validate required fields
+            const missing: string[] = [];
+            if (!formData.title.trim()) missing.push('Title');
+            if (!formData.address.trim()) missing.push('Address');
+            if (!formData.description.trim()) missing.push('Description');
+            if (!formData.severity) missing.push('Severity');
+            if (!formData.type) missing.push('Type');
+            if (formData.type === 'Other' && !formData.customCategory.trim()) missing.push('Custom Category');
+            if (missing.length > 0) {
+                alert(`Please fill in the following required field(s): ${missing.join(', ')}`);
+                setIsSubmitting(false);
+                return;
+            }
+
             // 1. Geocode the address for lat/lng
             let lat = previewLocation?.lat;
             let lng = previewLocation?.lng;
@@ -617,7 +631,7 @@ const Home: React.FC = () => {
             handleCancel();
         } catch (error) {
             console.error('Submission error:', error);
-            alert('Failed to submit request. See console for details.');
+            alert(`Failed to submit request: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsSubmitting(false);
         }

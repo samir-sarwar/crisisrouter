@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { TourStep } from './onboardingSteps';
 
 interface TooltipProps {
@@ -125,108 +124,102 @@ export default function OnboardingTooltip({
     const isWelcome = step.id === 'welcome';
 
     return (
-        <AnimatePresence mode="wait">
-            {isVisible && (
-                <>
-                    {/* Backdrop for modal steps */}
-                    {isModal && (
-                        <motion.div
-                            className="onboarding-modal-backdrop"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            style={{
-                                position: 'fixed',
-                                inset: 0,
-                                background: 'rgba(0, 0, 0, 0.85)',
-                                zIndex: 9998,
-                            }}
-                        />
-                    )}
-
-                    <motion.div
-                        ref={tooltipRef}
-                        key={step.id}
-                        className={`onboarding-tooltip ${isModal ? 'onboarding-tooltip--modal' : ''}`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: measured || isModal ? 1 : 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        style={{
-                            position: 'fixed',
-                            top: position.top,
-                            left: position.left,
-                            zIndex: 10000,
-                        }}
-                    >
-                        {/* Step indicator */}
-                        {!isModal && (
-                            <div className="onboarding-tooltip__step">
-                                STEP {stepNumber + 1}/{totalSteps}
-                            </div>
-                        )}
-
-                        {/* Title */}
-                        <h3 className="onboarding-tooltip__title">
-                            {isModal && <span className="onboarding-tooltip__prefix">&gt; </span>}
-                            {step.title}
-                        </h3>
-
-                        {/* Description */}
-                        <p className="onboarding-tooltip__desc">{step.description}</p>
-
-                        {/* Completion footer */}
-                        {isCompletion && (
-                            <div className="onboarding-tooltip__footer">
-                                Made with love by Samir Sarwar
-                            </div>
-                        )}
-
-                        {/* Actions */}
-                        <div className="onboarding-tooltip__actions">
-                            {isWelcome ? (
-                                <>
-                                    <button className="onboarding-tooltip__btn onboarding-tooltip__btn--primary" onClick={onNext}>
-                                        Begin Tour
-                                    </button>
-                                    <button className="onboarding-tooltip__btn onboarding-tooltip__btn--ghost" onClick={onSkip}>
-                                        Skip Tour
-                                    </button>
-                                </>
-                            ) : isCompletion ? (
-                                <button className="onboarding-tooltip__btn onboarding-tooltip__btn--primary" onClick={onComplete}>
-                                    Start Using CrisisRouter
-                                </button>
-                            ) : step.requireAction ? (
-                                <button className="onboarding-tooltip__btn onboarding-tooltip__btn--ghost" onClick={onSkip}>
-                                    Skip Tour
-                                </button>
-                            ) : (
-                                <>
-                                    <button className="onboarding-tooltip__btn onboarding-tooltip__btn--primary" onClick={onNext}>
-                                        {isLastStep ? 'Finish' : 'Next'}
-                                    </button>
-                                    <button className="onboarding-tooltip__btn onboarding-tooltip__btn--ghost" onClick={onSkip}>
-                                        Skip Tour
-                                    </button>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Progress dots */}
-                        {!isModal && (
-                            <div className="onboarding-tooltip__progress">
-                                {Array.from({ length: totalSteps }, (_, i) => (
-                                    <span
-                                        key={i}
-                                        className={`onboarding-tooltip__dot ${i === stepNumber ? 'onboarding-tooltip__dot--active' : ''} ${i < stepNumber ? 'onboarding-tooltip__dot--done' : ''}`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </motion.div>
-                </>
+        <>
+            {/* Backdrop for modal steps */}
+            {isModal && (
+                <div
+                    className="onboarding-modal-backdrop"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0, 0, 0, 0.85)',
+                        zIndex: 9998,
+                        opacity: isVisible ? 1 : 0,
+                        transition: 'opacity 0.25s ease',
+                        pointerEvents: isVisible ? 'auto' : 'none',
+                    }}
+                />
             )}
-        </AnimatePresence>
+
+            <div
+                ref={tooltipRef}
+                className={`onboarding-tooltip ${isModal ? 'onboarding-tooltip--modal' : ''}`}
+                style={{
+                    position: 'fixed',
+                    top: position.top,
+                    left: position.left,
+                    zIndex: 10000,
+                    opacity: isVisible && (measured || isModal) ? 1 : 0,
+                    transition: 'opacity 0.25s ease, top 0.3s ease, left 0.3s ease',
+                    pointerEvents: isVisible ? 'auto' : 'none',
+                }}
+            >
+                {/* Step indicator */}
+                {!isModal && (
+                    <div className="onboarding-tooltip__step">
+                        STEP {stepNumber + 1}/{totalSteps}
+                    </div>
+                )}
+
+                {/* Title */}
+                <h3 className="onboarding-tooltip__title">
+                    {isModal && <span className="onboarding-tooltip__prefix">&gt; </span>}
+                    {step.title}
+                </h3>
+
+                {/* Description */}
+                <p className="onboarding-tooltip__desc">{step.description}</p>
+
+                {/* Completion footer */}
+                {isCompletion && (
+                    <div className="onboarding-tooltip__footer">
+                        Made with love by Samir Sarwar
+                    </div>
+                )}
+
+                {/* Actions */}
+                <div className="onboarding-tooltip__actions">
+                    {isWelcome ? (
+                        <>
+                            <button className="onboarding-tooltip__btn onboarding-tooltip__btn--primary" onClick={onNext}>
+                                Begin Tour
+                            </button>
+                            <button className="onboarding-tooltip__btn onboarding-tooltip__btn--ghost" onClick={onSkip}>
+                                Skip Tour
+                            </button>
+                        </>
+                    ) : isCompletion ? (
+                        <button className="onboarding-tooltip__btn onboarding-tooltip__btn--primary" onClick={onComplete}>
+                            Start Using CrisisRouter
+                        </button>
+                    ) : step.requireAction ? (
+                        <button className="onboarding-tooltip__btn onboarding-tooltip__btn--ghost" onClick={onSkip}>
+                            Skip Tour
+                        </button>
+                    ) : (
+                        <>
+                            <button className="onboarding-tooltip__btn onboarding-tooltip__btn--primary" onClick={onNext}>
+                                {isLastStep ? 'Finish' : 'Next'}
+                            </button>
+                            <button className="onboarding-tooltip__btn onboarding-tooltip__btn--ghost" onClick={onSkip}>
+                                Skip Tour
+                            </button>
+                        </>
+                    )}
+                </div>
+
+                {/* Progress dots */}
+                {!isModal && (
+                    <div className="onboarding-tooltip__progress">
+                        {Array.from({ length: totalSteps }, (_, i) => (
+                            <span
+                                key={i}
+                                className={`onboarding-tooltip__dot ${i === stepNumber ? 'onboarding-tooltip__dot--active' : ''} ${i < stepNumber ? 'onboarding-tooltip__dot--done' : ''}`}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </>
     );
 }

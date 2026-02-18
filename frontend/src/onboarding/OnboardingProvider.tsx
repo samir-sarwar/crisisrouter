@@ -137,7 +137,7 @@ export default function OnboardingProvider({ children }: { children: React.React
         }
     }, [location.pathname, isActive, waitingForAction, resolveAction]);
 
-    const value = {
+    const value = React.useMemo(() => ({
         isActive,
         currentStep,
         totalSteps: ONBOARDING_STEPS.length,
@@ -149,7 +149,18 @@ export default function OnboardingProvider({ children }: { children: React.React
         completeTour,
         resolveAction,
         registerHomeCallbacks,
-    };
+    }), [
+        isActive,
+        currentStep,
+        waitingForAction,
+        tourRequestId,
+        startTour,
+        nextStep,
+        skipTour,
+        completeTour,
+        resolveAction,
+        registerHomeCallbacks,
+    ]);
 
     return (
         <OnboardingContext.Provider value={value}>
