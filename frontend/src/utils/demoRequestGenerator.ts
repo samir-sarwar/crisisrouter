@@ -10,6 +10,8 @@ export interface ActiveRequest {
     status: string;
     creatorFirstName: string;
     creatorLastName: string;
+    creatorEmail?: string;
+    creatorPhone?: string;
     type: string;
     customCategory?: string;
 }
@@ -44,6 +46,18 @@ const CATEGORIES = ['Medical', 'Shelter', 'Food & Water', 'Transport', 'Rescue']
 
 const FIRST_NAMES = ['Sarah', 'James', 'Priya', 'Marcus', 'Elena', 'David', 'Fatima', 'Chen', 'Olga', 'Amir'];
 const LAST_NAMES = ['Chen', 'Williams', 'Patel', 'Johnson', 'Rodriguez', 'Kim', 'Hassan', 'Murphy', 'Singh', 'Brown'];
+
+const FAKE_EMAILS = [
+    'sarah.chen@example.com', 'james.w@example.com', 'priya.patel@example.com',
+    'marcus.j@example.com', 'elena.r@example.com', 'david.kim@example.com',
+    'fatima.h@example.com', 'chen.w@example.com', 'olga.s@example.com', 'amir.b@example.com',
+];
+
+const FAKE_PHONES = [
+    '+1 (555) 234-5678', '+1 (555) 345-6789', '+1 (555) 456-7890',
+    '+1 (555) 567-8901', '+1 (555) 678-9012', '+1 (555) 789-0123',
+    '+1 (555) 890-1234', '+1 (555) 901-2345', '+1 (555) 012-3456', '+1 (555) 123-4567',
+];
 
 function pick<T>(arr: T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -92,6 +106,8 @@ export async function generateFakeRequest(
         status: 'OPEN',
         creatorFirstName: pick(FIRST_NAMES),
         creatorLastName: pick(LAST_NAMES),
+        creatorEmail: pick(FAKE_EMAILS),
+        creatorPhone: pick(FAKE_PHONES),
         type: pick(CATEGORIES),
     };
 }

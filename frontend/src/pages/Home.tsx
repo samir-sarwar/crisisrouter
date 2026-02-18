@@ -8,6 +8,7 @@ import NotificationBell from '../components/NotificationBell';
 import type { NearbyNotification } from '../components/NotificationBell';
 import { generateFakeRequest } from '../utils/demoRequestGenerator';
 import type { ActiveRequest } from '../utils/demoRequestGenerator';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 // WebSocket imports (uncomment for production):
@@ -68,6 +69,7 @@ const INITIAL_FORM: FormData = {
 const Home: React.FC = () => {
     const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
     const mapRef = useRef<any>(null);
+    const { isActive, resolveAction, registerHomeCallbacks } = useOnboarding();
     const sessionViewport = getSessionViewport();
     const mapLoaded = useRef(false);
     const pendingUserFly = useRef<[number, number] | null>(null);
@@ -100,6 +102,19 @@ const Home: React.FC = () => {
 
     // Nearby request notifications
     const [notifications, setNotifications] = useState<NearbyNotification[]>([]);
+
+    // Register callbacks for onboarding tour
+    useEffect(() => {
+        registerHomeCallbacks({
+            setActiveRequests,
+            setNotifications,
+            setIsCreatingRequest,
+            mapRef,
+            currentUser,
+            mapboxToken,
+        });
+        return () => registerHomeCallbacks(null);
+    }, [currentUser, mapboxToken, registerHomeCallbacks]);
 
     // Fetch Categories on Mount
     useEffect(() => {
@@ -373,12 +388,13 @@ const Home: React.FC = () => {
                     requestLongitude: req.longitude,
                     requesterFirstName: req.creatorFirstName,
                     requesterLastName: req.creatorLastName,
-                    requesterEmail: `${req.creatorFirstName.toLowerCase()}@example.com`,
-                    requesterPhone: null,
+                    requesterEmail: req.creatorEmail || `${req.creatorFirstName.toLowerCase()}@example.com`,
+                    requesterPhone: req.creatorPhone || null,
                 };
                 const existing = JSON.parse(sessionStorage.getItem('crisisRouter.demoClaims') || '[]');
                 sessionStorage.setItem('crisisRouter.demoClaims', JSON.stringify([demoClaim, ...existing]));
             }
+            if (isActive) resolveAction('volunteer-complete');
             return;
         }
 
@@ -393,6 +409,7 @@ const Home: React.FC = () => {
                 setActiveRequests(prev =>
                     prev.map(r => r.id === requestId ? { ...r, status: 'CLAIMED' } : r)
                 );
+                if (isActive) resolveAction('volunteer-complete');
             }
         } catch (err) {
             console.error('Volunteer error:', err);
@@ -476,6 +493,7 @@ const Home: React.FC = () => {
         setFormData(INITIAL_FORM);
         setUploadedFiles([]);
         setPreviewLocation(null);
+        if (isActive) resolveAction('close-request-form');
     };
 
     // Submit handler — geocode final address, map category → UUID, POST to backend
@@ -756,7 +774,10 @@ const Home: React.FC = () => {
             {/* Primary Action Button */}
             <button
                 className="create-request-btn"
-                onClick={() => setIsCreatingRequest(true)}
+                onClick={() => {
+                    setIsCreatingRequest(true);
+                    if (isActive) resolveAction('open-request-form');
+                }}
                 style={{
                     opacity: isCreatingRequest ? 0 : 1,
                     pointerEvents: isCreatingRequest ? 'none' : 'auto',

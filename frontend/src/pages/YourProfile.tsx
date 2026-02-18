@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import '../App.css';
 
 interface UserProfile {
@@ -16,6 +17,8 @@ interface UserProfile {
 }
 
 export default function YourProfile() {
+    const navigate = useNavigate();
+    const { startTour } = useOnboarding();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -283,6 +286,28 @@ export default function YourProfile() {
                         </div>
                     </form>
                 </div>
+            </div>
+
+            {/* Restart Tour */}
+            <div style={{ maxWidth: '800px', margin: '2rem auto 0', textAlign: 'center' }}>
+                <button
+                    className="yr-btn"
+                    style={{
+                        background: 'transparent',
+                        color: '#666',
+                        border: '1px solid #333',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        letterSpacing: '0.05em',
+                    }}
+                    onClick={() => {
+                        localStorage.removeItem('crisisRouter.onboardingComplete');
+                        navigate('/home');
+                        setTimeout(() => startTour(), 500);
+                    }}
+                >
+                    Restart Tour
+                </button>
             </div>
         </div>
     );

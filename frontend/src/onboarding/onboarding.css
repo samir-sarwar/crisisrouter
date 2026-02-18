@@ -1,0 +1,151 @@
+/* ── Onboarding Overlay ─────────────────────────────── */
+.onboarding-overlay {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9996;
+}
+
+/* ── Tooltip ───────────────────────────────────────── */
+.onboarding-tooltip {
+    pointer-events: auto;
+    background: rgba(11, 11, 11, 0.95);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    max-width: 380px;
+    min-width: 280px;
+    font-family: 'Geist Mono', monospace;
+    color: #e0e0e0;
+    box-shadow:
+        0 0 20px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(0, 255, 65, 0.08);
+    backdrop-filter: blur(8px);
+}
+
+.onboarding-tooltip--modal {
+    max-width: 480px;
+    min-width: 340px;
+    text-align: center;
+    padding: 2rem 2.5rem;
+    border-color: #00ff41;
+    box-shadow:
+        0 0 30px rgba(0, 255, 65, 0.15),
+        0 0 60px rgba(0, 255, 65, 0.05);
+}
+
+/* Step indicator */
+.onboarding-tooltip__step {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: #00ff41;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+/* Title */
+.onboarding-tooltip__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #00ff41;
+    margin: 0 0 0.75rem 0;
+    letter-spacing: 0.05em;
+}
+
+.onboarding-tooltip__prefix {
+    color: #00ff41;
+    opacity: 0.6;
+}
+
+.onboarding-tooltip--modal .onboarding-tooltip__title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+/* Description */
+.onboarding-tooltip__desc {
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: #ccc;
+    margin: 0 0 1.25rem 0;
+}
+
+.onboarding-tooltip--modal .onboarding-tooltip__desc {
+    font-size: 0.85rem;
+}
+
+/* Footer (completion step) */
+.onboarding-tooltip__footer {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 1.25rem;
+    font-style: italic;
+    letter-spacing: 0.05em;
+}
+
+/* Actions */
+.onboarding-tooltip__actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.onboarding-tooltip__btn {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+.onboarding-tooltip__btn--primary {
+    background: #00ff41;
+    color: #0b0b0b;
+    border: 1px solid #00ff41;
+    font-weight: 600;
+}
+
+.onboarding-tooltip__btn--primary:hover {
+    background: #33ff66;
+    color: #0b0b0b;
+    box-shadow: 0 0 12px rgba(0, 255, 65, 0.4);
+}
+
+.onboarding-tooltip__btn--ghost {
+    background: transparent;
+    color: #666;
+    border: 1px solid #333;
+}
+
+.onboarding-tooltip__btn--ghost:hover {
+    color: #e0e0e0;
+    border-color: #555;
+}
+
+/* Progress dots */
+.onboarding-tooltip__progress {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.onboarding-tooltip__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #333;
+    transition: all 0.3s ease;
+}
+
+.onboarding-tooltip__dot--active {
+    background: #00ff41;
+    box-shadow: 0 0 6px rgba(0, 255, 65, 0.5);
+}
+
+.onboarding-tooltip__dot--done {
+    background: #00ff4166;
+}

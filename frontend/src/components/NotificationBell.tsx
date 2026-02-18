@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
+import { useOnboarding } from '../onboarding/useOnboarding';
 
 export interface NearbyNotification {
     id: string;
@@ -42,25 +43,30 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
+    const { isActive, resolveAction } = useOnboarding();
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    // Close dropdown on click outside
+    // Close dropdown on click outside (disabled during onboarding to prevent accidental close)
     useEffect(() => {
         const handler = (e: MouseEvent) => {
+            if (isActive) return;
             if (ref.current && !ref.current.contains(e.target as Node)) {
                 setIsOpen(false);
             }
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
-    }, []);
+    }, [isActive]);
 
     return (
         <div className="notif-bell" ref={ref}>
             <button
                 className="notif-bell__btn"
-                onClick={() => setIsOpen(prev => !prev)}
+                onClick={() => {
+                    setIsOpen(prev => !prev);
+                    if (isActive) resolveAction('open-notification-dropdown');
+                }}
             >
                 <Bell size={20} />
                 {unreadCount > 0 && <span className="notif-bell__dot" />}
@@ -90,6 +96,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
                                     onClick={() => {
                                         onNotificationClick(n);
                                         setIsOpen(false);
+                                        if (isActive) resolveAction('click-notification-item');
                                     }}
                                 >
                                     <div className="notif-bell__item-title">{n.title}</div>
