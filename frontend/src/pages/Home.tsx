@@ -723,6 +723,14 @@ const Home: React.FC = () => {
                                 isOwnRequest={isOwn}
                                 isVolunteering={req.status === 'CLAIMED'}
                                 onVolunteer={() => handleVolunteer(req.id)}
+                                onClick={() => {
+                                    mapRef.current?.flyTo({
+                                        center: [req.longitude, req.latitude],
+                                        zoom: 16,
+                                        pitch: 55,
+                                        duration: 2000,
+                                    });
+                                }}
                             />
                         </Marker>
                     );

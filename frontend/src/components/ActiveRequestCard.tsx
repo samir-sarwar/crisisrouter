@@ -11,6 +11,7 @@ interface ActiveRequestCardProps {
     isOwnRequest: boolean;
     isVolunteering: boolean;
     onVolunteer?: () => void;
+    onClick?: () => void;
 }
 
 const severityColors: Record<string, string> = {
@@ -42,13 +43,17 @@ const ActiveRequestCard: React.FC<ActiveRequestCardProps> = ({
     isOwnRequest,
     isVolunteering,
     onVolunteer,
+    onClick,
 }) => {
     const [isConfirming, setIsConfirming] = useState(false);
     const sevColor = severityColors[severity] || '#888';
     const sevLabel = severityLabels[severity] || severity?.toUpperCase() || 'UNKNOWN';
 
     return (
-        <div className="active-card">
+        <div
+            className="active-card"
+            onClick={onClick}
+        >
             {/* Pulsing red dot indicator */}
             <div className="active-card__pulse-wrapper">
                 <span className="active-card__pulse-ring" />

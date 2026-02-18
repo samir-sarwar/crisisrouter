@@ -1974,4 +1974,4 @@ code {
   font-size: 0.75rem;
   color: var(--muted-color);
   font-style: italic;
-}
+}.active-card { cursor: pointer; }
