@@ -3,19 +3,13 @@ package com.crisisrouter.crisisRouter.service.mapper;
 import com.crisisrouter.crisisRouter.model.entity.ResourceRequest;
 import com.crisisrouter.crisisRouter.model.entity.RequestStatus;
 import com.crisisrouter.crisisRouter.service.dto.ResourceRequestDTO;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring", imports = {RequestStatus.class})
 public abstract class ResourceRequestMapper {
-
-    // Same factory you used in your manual mapper
-    private final GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
 
     // TO DTO: Navigation for the creator names and converting the Point back to Lat/Long
     @Mapping(source = "user.firstName", target = "creatorFirstName")
