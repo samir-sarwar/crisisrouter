@@ -1,0 +1,21 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+aws:
+  s3:
+    bucket-name: test-bucket
+    region: us-east-1
+    access-key: test-key
+    secret-key: test-secret

@@ -1,10 +1,9 @@
 package com.crisisrouter.crisisRouter.repository;
 
+import com.crisisrouter.crisisRouter.model.entity.RequestStatus;
 import com.crisisrouter.crisisRouter.model.entity.ResourceRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
-import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
 import org.locationtech.jts.geom.Point;
@@ -21,7 +20,6 @@ public interface ResourceRequestRepository extends JpaRepository<ResourceRequest
             nativeQuery = true)
     List<ResourceRequest> findNearbyRequests(@Param("point") Point point, @Param("radius") double radius);
 
-    List<ResourceRequest> findByStatus(String status);
-
+    List<ResourceRequest> findByStatus(RequestStatus status);
 
 }
