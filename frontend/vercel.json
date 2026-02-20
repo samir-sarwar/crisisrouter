@@ -2,19 +2,19 @@
     "rewrites": [
         {
             "source": "/api/:path*",
-            "destination": "https://<your-railway-backend-url>/api/:path*"
+            "destination": "https://crisisrouter-production.up.railway.app/api/:path*"
         },
         {
             "source": "/oauth2/:path*",
-            "destination": "https://<your-railway-backend-url>/oauth2/:path*"
+            "destination": "https://crisisrouter-production.up.railway.app/oauth2/:path*"
         },
         {
             "source": "/login/oauth2/:path*",
-            "destination": "https://<your-railway-backend-url>/login/oauth2/:path*"
+            "destination": "https://crisisrouter-production.up.railway.app/login/oauth2/:path*"
         },
         {
             "source": "/logout",
-            "destination": "https://<your-railway-backend-url>/logout"
+            "destination": "https://crisisrouter-production.up.railway.app/logout"
         },
         {
             "source": "/(.*)",
