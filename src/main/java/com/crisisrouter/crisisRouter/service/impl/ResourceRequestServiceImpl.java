@@ -20,7 +20,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.crisisrouter.crisisRouter.service.FileStorageService;
 import org.springframework.web.multipart.MultipartFile;
 import com.crisisrouter.crisisRouter.model.entity.User;
 

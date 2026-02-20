@@ -1,7 +1,6 @@
 package com.crisisrouter.crisisRouter.mapper;
 
 import com.crisisrouter.crisisRouter.model.entity.User;
-import com.crisisrouter.crisisRouter.model.entity.UserRole;
 import com.crisisrouter.crisisRouter.service.dto.UserDTO;
 import com.crisisrouter.crisisRouter.service.mapper.UserMapper;
 import com.crisisrouter.crisisRouter.testutil.TestDataFactory;

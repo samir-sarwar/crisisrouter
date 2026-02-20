@@ -14,8 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
