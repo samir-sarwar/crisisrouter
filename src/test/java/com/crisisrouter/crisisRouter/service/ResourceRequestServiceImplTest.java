@@ -237,13 +237,13 @@ class ResourceRequestServiceImplTest {
         ResourceRequest entity = TestDataFactory.createResourceRequest(user, category);
         ResourceRequestDTO dto = TestDataFactory.createResourceRequestDTO();
 
-        when(requestRepository.findNearbyRequests(any(), eq(5000.0))).thenReturn(List.of(entity));
+        when(requestRepository.findNearbyRequests(eq(43.5), eq(-80.5), eq(5000.0))).thenReturn(List.of(entity));
         when(mapper.toDTO(entity)).thenReturn(dto);
 
         List<ResourceRequestDTO> result = service.findNearby(-80.5, 43.5, 5000.0);
 
         assertThat(result).hasSize(1);
-        verify(requestRepository).findNearbyRequests(any(), eq(5000.0));
+        verify(requestRepository).findNearbyRequests(eq(43.5), eq(-80.5), eq(5000.0));
     }
 
     // ── getById ──
@@ -421,9 +421,8 @@ class ResourceRequestServiceImplTest {
 
         service.updateRequest(id, updateDto);
 
-        assertThat(entity.getLocation()).isNotNull();
-        assertThat(entity.getLocation().getX()).isEqualTo(-79.0);
-        assertThat(entity.getLocation().getY()).isEqualTo(44.0);
+        assertThat(entity.getLatitude()).isEqualTo(44.0);
+        assertThat(entity.getLongitude()).isEqualTo(-79.0);
     }
 
     @Test

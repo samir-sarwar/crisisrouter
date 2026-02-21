@@ -184,9 +184,11 @@ public class ClaimServiceImpl implements ClaimService {
                 dto.setRequestSeverityLevel(req.getSeverityLevel());
                 dto.setRequestImageUrl(req.getImageUrl());
                 dto.setRequestStatus(req.getStatus().name());
-                if (req.getLocation() != null) {
-                        dto.setRequestLatitude(req.getLocation().getY());
-                        dto.setRequestLongitude(req.getLocation().getX());
+                if (req.getLatitude() != null) {
+                        dto.setRequestLatitude(req.getLatitude());
+                }
+                if (req.getLongitude() != null) {
+                        dto.setRequestLongitude(req.getLongitude());
                 }
 
                 // Requester (request creator) info

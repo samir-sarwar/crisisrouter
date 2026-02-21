@@ -1,12 +1,10 @@
 package com.crisisrouter.crisisRouter.model.entity;
 
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import lombok.*;
 import jakarta.persistence.*;
-import org.locationtech.jts.geom.Point;
 
 @Entity
 @Table(name = "resource_requests")
@@ -46,8 +44,11 @@ public class ResourceRequest {
     @Column(nullable = false)
     private String address;
 
-    @Column(columnDefinition = "geometry(Point, 4326)")
-    private Point location;
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -67,7 +68,5 @@ public class ResourceRequest {
             this.status = RequestStatus.OPEN; // Default status
         }
     }
-
-
 
 }

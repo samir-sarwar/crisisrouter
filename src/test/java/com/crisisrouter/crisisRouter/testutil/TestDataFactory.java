@@ -2,19 +2,14 @@ package com.crisisrouter.crisisRouter.testutil;
 
 import com.crisisrouter.crisisRouter.model.entity.*;
 import com.crisisrouter.crisisRouter.service.dto.*;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public final class TestDataFactory {
 
-    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
-
-    private TestDataFactory() {}
+    private TestDataFactory() {
+    }
 
     public static User createUser() {
         return createUser("test@example.com", "John", "Doe");
@@ -56,7 +51,8 @@ public final class TestDataFactory {
         request.setDescription("Need food supplies urgently");
         request.setSeverityLevel(3);
         request.setAddress("123 Main St");
-        request.setLocation(createPoint(-80.5449, 43.4723));
+        request.setLatitude(43.4723);
+        request.setLongitude(-80.5449);
         request.setStatus(status);
         request.setCreatedAt(LocalDateTime.now());
         return request;
@@ -105,15 +101,10 @@ public final class TestDataFactory {
                 "123 Main St",
                 43.4723,
                 -80.5449,
-                "VOLUNTEER"
-        );
+                "VOLUNTEER");
     }
 
     public static CategoryDTO createCategoryDTO() {
         return new CategoryDTO(UUID.randomUUID(), "Food", "Emergency food supplies");
-    }
-
-    public static Point createPoint(double longitude, double latitude) {
-        return GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude));
     }
 }

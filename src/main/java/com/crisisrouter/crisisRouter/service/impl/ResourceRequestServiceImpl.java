@@ -11,10 +11,6 @@ import com.crisisrouter.crisisRouter.service.ResourceRequestService;
 import com.crisisrouter.crisisRouter.service.dto.ResourceRequestDTO;
 import com.crisisrouter.crisisRouter.service.mapper.ResourceRequestMapper;
 import lombok.RequiredArgsConstructor;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -37,9 +33,6 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
     private final ResourceRequestMapper mapper;
     private final SimpMessagingTemplate messagingTemplate;
     private final FileStorageService fileStorageService;
-
-    // GeometryFactory for spatial math (SRID 4326 = GPS coordinates)
-    private final GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
 
     public String getCurrentUserEmail() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -82,12 +75,10 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
             entity.setImageUrl(imageUrl);
         }
 
-        // Build the PostGIS Point from the DTO's lat/lng
-        // (The mapper ignores 'location' so we must set it manually)
+        // Set latitude and longitude from the DTO
         if (requestDTO.getLatitude() != null && requestDTO.getLongitude() != null) {
-            Point point = factory.createPoint(
-                    new Coordinate(requestDTO.getLongitude(), requestDTO.getLatitude()));
-            entity.setLocation(point);
+            entity.setLatitude(requestDTO.getLatitude());
+            entity.setLongitude(requestDTO.getLongitude());
         }
 
         // Default new requests to OPEN status
@@ -105,11 +96,8 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
     @Override
     @Transactional(readOnly = true)
     public List<ResourceRequestDTO> findNearby(Double longitude, Double latitude, Double radiusInMeters) {
-        // Convert the doubles from the frontend into a JTS Point for PostGIS
-        Point searchPoint = factory.createPoint(new Coordinate(longitude, latitude));
-
-        // Call our specialized Repository method
-        List<ResourceRequest> entities = requestRepository.findNearbyRequests(searchPoint, radiusInMeters);
+        // Call our specialized Repository method with plain lat/lng
+        List<ResourceRequest> entities = requestRepository.findNearbyRequests(latitude, longitude, radiusInMeters);
 
         // Use Java Streams to translate every entity in the list to a DTO
         return entities.stream()
@@ -189,9 +177,8 @@ public class ResourceRequestServiceImpl implements ResourceRequestService {
 
         // Re-set location if coordinates changed
         if (dto.getLatitude() != null && dto.getLongitude() != null) {
-            Point point = factory.createPoint(
-                    new Coordinate(dto.getLongitude(), dto.getLatitude()));
-            request.setLocation(point);
+            request.setLatitude(dto.getLatitude());
+            request.setLongitude(dto.getLongitude());
         }
 
         ResourceRequest saved = requestRepository.save(request);

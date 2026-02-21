@@ -80,7 +80,8 @@ class ResourceRequestMapperTest {
         User user = TestDataFactory.createUser();
         Category category = TestDataFactory.createCategory();
         ResourceRequest entity = TestDataFactory.createResourceRequest(user, category);
-        entity.setLocation(null);
+        entity.setLatitude(null);
+        entity.setLongitude(null);
 
         ResourceRequestDTO dto = mapper.toDTO(entity);
 
@@ -129,14 +130,13 @@ class ResourceRequestMapperTest {
     }
 
     @Test
-    void toEntity_ignoresUserCategoryLocation() {
+    void toEntity_ignoresUserAndCategory() {
         ResourceRequestDTO dto = TestDataFactory.createResourceRequestDTO();
 
         ResourceRequest entity = mapper.toEntity(dto);
 
         assertThat(entity.getUser()).isNull();
         assertThat(entity.getCategory()).isNull();
-        assertThat(entity.getLocation()).isNull();
     }
 
     @Test

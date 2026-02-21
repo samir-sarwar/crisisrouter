@@ -16,8 +16,7 @@ public class TestcontainersConfig {
         // docker-java reads this system property as "api.version"
         System.setProperty("api.version", "1.44");
         postgres = new PostgreSQLContainer<>(
-                DockerImageName.parse("postgis/postgis:16-3.4")
-                        .asCompatibleSubstituteFor("postgres"))
+                DockerImageName.parse("postgres:16"))
                 .withDatabaseName("crisis_router_test")
                 .withUsername("test")
                 .withPassword("test");
