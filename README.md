@@ -2,6 +2,8 @@
 
 A full-stack crisis management platform that connects people in need of emergency assistance with volunteer responders through real-time, location-based coordination on an interactive map.
 
+**Live at [crisisrouter.xyz](https://crisisrouter.xyz)**
+
 ---
 
 ## Table of Contents
@@ -17,6 +19,7 @@ A full-stack crisis management platform that connects people in need of emergenc
 - [Authentication](#authentication)
 - [WebSocket (Real-Time)](#websocket-real-time)
 - [Testing](#testing)
+- [Deployment](#deployment)
 - [Configuration Reference](#configuration-reference)
 
 ---
@@ -167,6 +170,8 @@ sequenceDiagram
 - **React Router 7** (SPA navigation)
 
 ### Infrastructure
+- **Vercel** (frontend hosting)
+- **Railway** (backend hosting + managed PostgreSQL)
 - **Docker** & **Docker Compose**
 - **Testcontainers** (integration testing)
 
@@ -219,10 +224,12 @@ crisisRouter/
 
 ## Getting Started
 
+The app is live at [crisisrouter.xyz](https://crisisrouter.xyz). The instructions below are for running locally.
+
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/samir-sarwar/crisisrouter.git
 cd crisisRouter
 ```
 
@@ -331,7 +338,7 @@ crisisRouter uses **OAuth2 with Auth0** for authentication.
 4. A user record is automatically created or updated in the database
 5. Session-based authentication is maintained via Spring Security
 
-All API endpoints except `/api/categories` require authentication. CORS is configured for `http://localhost:5173` with credentials enabled.
+All API endpoints except `/api/categories` require authentication. CORS is configured via the `FRONTEND_URL` environment variable (defaults to `http://localhost:5173` locally, set to `https://crisisrouter.xyz` in production).
 
 ---
 
@@ -366,6 +373,21 @@ The project includes a comprehensive multi-layer test suite using **JUnit 5**, *
 - **Service tests** — unit tests for business logic
 - **Repository tests** — data access layer verification
 - **Test utilities** — `SecurityTestUtil` for mock auth, `TestDataFactory` for fixtures
+
+---
+
+## Deployment
+
+The application is deployed at [crisisrouter.xyz](https://crisisrouter.xyz) using the following architecture:
+
+| Component | Platform | Details |
+|---|---|---|
+| **Frontend** | Vercel | React SPA with API rewrites to the backend (`vercel.json`) |
+| **Backend** | Railway | Docker-based Spring Boot deployment (`Dockerfile`) |
+| **Database** | Railway | Managed PostgreSQL 15 + PostGIS |
+| **Domain** | crisisrouter.xyz | Custom domain pointing to the Vercel frontend |
+
+API requests from the frontend are proxied through Vercel rewrites to the Railway backend, keeping the backend URL transparent to users. Session cookies use `SameSite=None; Secure` to support this cross-domain setup.
 
 ---
 
