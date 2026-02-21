@@ -1,14 +1,14 @@
 /**
- * API utility – prefixes all requests with the backend URL.
+ * API utility – wraps fetch with credentials: 'include' by default.
  *
- * In development, VITE_BACKEND_URL is empty (Vite proxy handles /api -> localhost:8080).
- * In production, VITE_BACKEND_URL = https://crisisrouter-production.up.railway.app
- * so requests go directly to Railway (with credentials / cookies).
+ * All paths are relative (e.g. '/api/users/me'), handled by:
+ *   - Vite dev proxy in development
+ *   - Vercel rewrites in production
+ *
+ * This keeps all traffic on the same domain so session cookies work.
  */
-const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
-
 export function api(path: string, init?: RequestInit): Promise<Response> {
-    return fetch(`${BACKEND}${path}`, {
+    return fetch(path, {
         credentials: 'include',
         ...init,
     });

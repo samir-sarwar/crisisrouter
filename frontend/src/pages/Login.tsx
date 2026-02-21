@@ -6,10 +6,10 @@ function Login() {
         sessionStorage.removeItem('crisisRouter.mapViewport')
         sessionStorage.removeItem('crisisRouter.demoRequests')
         sessionStorage.removeItem('crisisRouter.demoClaims')
-        // Redirect to backend Auth0 login directly (not through Vercel proxy)
-        // so the OAuth2 session state is preserved across the redirect flow
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
-        window.location.href = `${backendUrl}/oauth2/authorization/auth0`
+        // Redirect to backend Auth0 login via relative URL.
+        // In dev: Vite proxy handles this. In prod: Vercel rewrite proxies to Railway.
+        // This keeps cookies on the same domain (crisisrouter.xyz).
+        window.location.href = '/oauth2/authorization/auth0'
     }, [])
 
     return null
