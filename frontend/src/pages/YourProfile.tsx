@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../onboarding/useOnboarding';
+import { api } from '../utils/api';
 import '../App.css';
 
 interface UserProfile {
@@ -39,7 +40,7 @@ export default function YourProfile() {
 
     // Fetch profile
     useEffect(() => {
-        fetch('/api/users/me', { credentials: 'include' })
+        api('/api/users/me')
             .then(res => {
                 if (!res.ok) throw new Error('Failed to load profile');
                 return res.json();
@@ -133,10 +134,9 @@ export default function YourProfile() {
                 bodyFormData.append('image', imageFile);
             }
 
-            const res = await fetch('/api/users/me', {
+            const res = await api('/api/users/me', {
                 method: 'PUT',
                 body: bodyFormData,
-                credentials: 'include'
             });
 
             if (!res.ok) throw new Error('Failed to update profile');

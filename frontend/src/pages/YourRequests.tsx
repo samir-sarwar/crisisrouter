@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../utils/api';
 
 /* ── Types ─────────────────────────────────────────────── */
 interface RequestItem {
@@ -70,7 +71,7 @@ export default function YourRequests() {
     /* ── Fetch requests on mount ── */
     const fetchRequests = useCallback(async () => {
         try {
-            const res = await fetch('/api/requests/me', { credentials: 'include' });
+            const res = await api('/api/requests/me');
             if (!res.ok) throw new Error('Failed to fetch requests');
             const data: RequestItem[] = await res.json();
             setRequests(data);
@@ -102,10 +103,9 @@ export default function YourRequests() {
 
     const saveEdit = async (id: string) => {
         try {
-            const res = await fetch(`/api/requests/${id}`, {
+            const res = await api(`/api/requests/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify(editForm),
             });
             if (!res.ok) {
@@ -125,9 +125,8 @@ export default function YourRequests() {
         const label = status === 'FULFILLED' ? 'complete' : 'cancel';
         if (!confirm(`Are you sure you want to ${label} this request?`)) return;
         try {
-            const res = await fetch(`/api/requests/${id}?status=${status}`, {
+            const res = await api(`/api/requests/${id}?status=${status}`, {
                 method: 'PATCH',
-                credentials: 'include',
             });
             if (!res.ok) throw new Error('Failed to update status');
             const updated: RequestItem = await res.json();
@@ -149,7 +148,7 @@ export default function YourRequests() {
 
         setLoadingVolunteers(requestId);
         try {
-            const res = await fetch(`/api/claims/request/${requestId}`, { credentials: 'include' });
+            const res = await api(`/api/claims/request/${requestId}`);
             if (!res.ok) throw new Error('Failed to fetch volunteers');
             const data: Volunteer[] = await res.json();
             setVolunteers(prev => ({ ...prev, [requestId]: data }));

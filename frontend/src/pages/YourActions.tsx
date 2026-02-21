@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../utils/api';
 
 /* ── Types ─────────────────────────────────────────────── */
 interface ClaimItem {
@@ -69,7 +70,7 @@ export default function YourActions() {
     /* ── Fetch claims on mount ── */
     const fetchClaims = useCallback(async () => {
         try {
-            const res = await fetch('/api/claims/me', { credentials: 'include' });
+            const res = await api('/api/claims/me');
             if (!res.ok) throw new Error('Failed to fetch claims');
             const data: ClaimItem[] = await res.json();
 
@@ -111,9 +112,8 @@ export default function YourActions() {
         }
 
         try {
-            const res = await fetch(`/api/claims/${claimId}/drop`, {
+            const res = await api(`/api/claims/${claimId}/drop`, {
                 method: 'PATCH',
-                credentials: 'include',
             });
             if (!res.ok) throw new Error('Failed to drop claim');
             setClaims(prev => prev.map(c =>

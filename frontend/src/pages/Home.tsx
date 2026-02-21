@@ -9,6 +9,7 @@ import type { NearbyNotification } from '../components/NotificationBell';
 import { generateFakeRequest } from '../utils/demoRequestGenerator';
 import type { ActiveRequest } from '../utils/demoRequestGenerator';
 import { useOnboarding } from '../onboarding/useOnboarding';
+import { api } from '../utils/api';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 // WebSocket imports (uncomment for production):
@@ -118,7 +119,7 @@ const Home: React.FC = () => {
 
     // Fetch Categories on Mount
     useEffect(() => {
-        fetch('/api/categories')
+        api('/api/categories')
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch categories');
                 return res.json();
@@ -131,15 +132,13 @@ const Home: React.FC = () => {
     useEffect(() => {
         const fetchMyRequests = async () => {
             try {
-                const res = await fetch('/api/requests/me', {
-                    credentials: 'include',
-                });
+                const res = await api('/api/requests/me');
                 if (!res.ok) return;
                 const data = await res.json();
 
                 let cats = categories;
                 if (cats.length === 0) {
-                    const catRes = await fetch('/api/categories');
+                    const catRes = await api('/api/categories');
                     if (catRes.ok) cats = await catRes.json();
                 }
 
@@ -168,16 +167,15 @@ const Home: React.FC = () => {
 
         const fetchNearby = async () => {
             try {
-                const res = await fetch(
-                    `/api/requests/nearby?latitude=${currentUser.latitude}&longitude=${currentUser.longitude}&radiusInMeters=10000`,
-                    { credentials: 'include' }
+                const res = await api(
+                    `/api/requests/nearby?latitude=${currentUser.latitude}&longitude=${currentUser.longitude}&radiusInMeters=10000`
                 );
                 if (!res.ok) return;
                 const nearbyData = await res.json();
 
                 let cats = categories;
                 if (cats.length === 0) {
-                    const catRes = await fetch('/api/categories');
+                    const catRes = await api('/api/categories');
                     if (catRes.ok) cats = await catRes.json();
                 }
 
@@ -204,7 +202,7 @@ const Home: React.FC = () => {
 
     // Fetch user profile for spawn location + store for notifications
     useEffect(() => {
-        fetch('/api/users/me', { credentials: 'include' })
+        api('/api/users/me')
             .then(res => {
                 if (res.ok) return res.json();
                 throw new Error('Not logged in');
@@ -401,9 +399,9 @@ const Home: React.FC = () => {
         // Real request — call the Claim API
         if (!currentUser?.id) return;
         try {
-            const res = await fetch(
+            const res = await api(
                 `/api/claims/request/${requestId}?volunteerId=${currentUser.id}`,
-                { method: 'POST', credentials: 'include' }
+                { method: 'POST' }
             );
             if (res.ok) {
                 setActiveRequests(prev =>
@@ -539,7 +537,7 @@ const Home: React.FC = () => {
             // 2. Map category name → UUID (re-fetch if empty)
             let cats = categories;
             if (cats.length === 0) {
-                const catRes = await fetch('/api/categories');
+                const catRes = await api('/api/categories');
                 if (catRes.ok) cats = await catRes.json();
             }
             const matchedCategory = cats.find(
@@ -553,7 +551,7 @@ const Home: React.FC = () => {
             }
 
             // 3. Fetch current user info for creatorFirstName/lastName
-            const meRes = await fetch('/api/users/me', { credentials: 'include' });
+            const meRes = await api('/api/users/me');
             if (!meRes.ok) {
                 alert('You must be logged in to submit a request. Redirecting to login...');
                 window.location.href = '/';
@@ -589,10 +587,9 @@ const Home: React.FC = () => {
             }
 
             // 6. POST to backend
-            const response = await fetch('/api/requests', {
+            const response = await api('/api/requests', {
                 method: 'POST',
                 body: bodyFormData,
-                credentials: 'include',
             });
 
             if (!response.ok) {
